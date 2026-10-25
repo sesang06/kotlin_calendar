@@ -69,8 +69,8 @@ worktree를 나누는 이유는 **동시에 진행하기 위해서**다. 독립 
 2. 에이전트에게 넘기는 것: worktree 절대 경로, 브랜치, 할 일, 읽을 스킬, **건드리면 안 되는 경로**(다른 에이전트가 같은 파일을 고치는 경우), 검증 명령, 커밋 규칙, push·PR 여부.
 3. 조율하는 쪽(메인 에이전트)은 직접 구현을 붙잡고 기다리지 않는다. 결과가 오는 대로 다음 단계를 병렬로 이어간다:
    - 피처 완료 → 즉시 push·PR → 리뷰 에이전트들을 병렬로 띄움
-   - 리뷰 결과 도착 → 작성 에이전트(해당 worktree)가 반영
-   - stacked 피처는 선행 피처의 **첫 커밋이 나오자마자** 그 위에서 시작 (선행 PR 머지를 기다리지 않음)
+   - 그 PR의 리뷰어가 모두 결과를 올리면 → 작성 에이전트(해당 worktree)가 반영 (`pull-request` 3·4단계). PR끼리는 서로 기다리지 않는다.
+   - stacked 피처는 선행 피처의 **첫 커밋이 나오자마자** 그 위에서 시작 (선행 PR 머지를 기다리지 않음). 선행 브랜치는 다른 에이전트가 계속 바꾸므로 후속 에이전트는 6단계로 갱신을 받아 오고, 후속 PR은 선행 브랜치가 `origin`에 push된 뒤에 연다.
 4. 같은 파일을 여러 피처가 고쳐야 하면 한 피처만 그 파일을 맡게 범위를 조정하고, 나머지에는 "이 파일 수정 금지"를 명시한다.
 5. 병렬로 돌릴 수 없는 이유가 있으면(같은 파일 대량 수정, 생성 코드 의존 등) 사용자에게 그 이유를 말한다.
 
@@ -88,11 +88,11 @@ worktree를 나누는 이유는 **동시에 진행하기 위해서**다. 독립 
 ```bash
 cd ../kotlin_calendar-worktrees/feat-client-calendar-screen
 git fetch origin
-git rebase origin/feat/proto-event     # 아직 리뷰 전이면 rebase
-git merge origin/feat/proto-event      # 리뷰 중이면 merge
+git rebase origin/feat/proto-event     # 아직 push 전이면 rebase
+git merge origin/feat/proto-event      # 한 번이라도 push했으면 merge (force-push 금지)
 ```
 
-선행 PR이 `main`에 머지되면 후속 PR의 base를 `main`으로 바꾼다: `gh pr edit <번호> --base main`.
+선행 PR이 `main`에 머지되면 후속 PR의 base를 `main`으로 바꾼다: `gh pr edit <번호> --base main`. "Projects (classic)" GraphQL 오류가 나면 `gh api -X PATCH repos/{owner}/{repo}/pulls/<번호> -f base=main`.
 
 ## 7. 정리
 
