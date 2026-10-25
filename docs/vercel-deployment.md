@@ -12,7 +12,7 @@
   - protobuf 본문은 파싱하지 않고 원본 바이트로 전달, 요청 헤더는 허용 목록만 전달
   - 백엔드 origin 밖이나 `/api/` 밖 경로는 400, 백엔드 미설정·`https` 아님은 503
   - 웹 클라이언트는 배포 시 같은 origin(`window.location.origin`)으로, 로컬 dev server(:8081)에서는 `http://localhost:8080`으로 요청 (`PlatformModule.wasmJs.kt`)
-  - 테스트: `node --test scripts/`
+  - 테스트: `node --test scripts/proxy.test.js`
 
 ## 환경 변수 설정 (Vercel Project Settings)
 

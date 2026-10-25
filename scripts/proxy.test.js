@@ -1,4 +1,4 @@
-// api/proxy.js 단위 테스트. 실행: node --test scripts/
+// api/proxy.js 단위 테스트. 실행: node --test scripts/proxy.test.js
 // api/ 아래 파일은 Vercel 함수로 배포되므로 테스트는 scripts/에 둔다.
 const test = require('node:test');
 const assert = require('node:assert');
