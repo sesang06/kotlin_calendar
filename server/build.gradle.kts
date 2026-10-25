@@ -23,7 +23,7 @@ kotlin {
 sourceSets {
     main {
         proto {
-            // 클라이언트와 공유하는 단일 계약 (proto-contract 스킬)
+            // 클라이언트와 공유하는 단일 계약 (proto-api 스킬)
             srcDir(rootProject.file("proto"))
         }
     }

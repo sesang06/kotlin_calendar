@@ -26,7 +26,7 @@
 
 ## 체크리스트
 
-- [ ] proto 변경 시 하위 호환 규칙 준수 (`proto-contract`)
+- [ ] proto 변경 시 하위 호환 규칙 준수 (`proto-api`)
 - [ ] 계층 의존 방향 준수 (Handler → Service → Repository / MVVM)
 - [ ] 새 기능에 테스트 추가
 - [ ] 비밀값·접속 정보 미포함
