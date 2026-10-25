@@ -21,7 +21,7 @@ class DatabaseMigrationIntegrationTest {
             val result = DatabaseMigrator(dataSource, DatabaseVendor.SUPABASE).migrate()
 
             assertTrue(result.success)
-            assertTrue(dataSource.userTables().containsAll(setOf("users", "refresh_tokens")))
+            assertTrue(dataSource.userTables().containsAll(setOf("users", "refresh_tokens", "events")))
         }
     }
 }

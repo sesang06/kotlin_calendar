@@ -19,13 +19,13 @@ class DatabaseMigratorTest {
     private fun migrated(): DataSource = h2().also { DatabaseMigrator(it, DatabaseVendor.POSTGRESQL).migrate() }
 
     @Test
-    fun `마이그레이션은 users와 refresh_tokens 테이블을 만든다`() {
+    fun `마이그레이션은 users, refresh_tokens, events 테이블을 만든다`() {
         val dataSource = h2()
 
         val result = DatabaseMigrator(dataSource, DatabaseVendor.POSTGRESQL).migrate()
 
         assertTrue(result.success)
-        assertEquals(setOf("users", "refresh_tokens"), dataSource.userTables())
+        assertEquals(setOf("users", "refresh_tokens", "events"), dataSource.userTables())
     }
 
     @Test
@@ -78,7 +78,80 @@ class DatabaseMigratorTest {
             )
         }
     }
+
+    @Test
+    fun `종료 시각이 시작 시각보다 늦지 않은 일정은 저장할 수 없다`() {
+        val dataSource = migrated()
+        dataSource.insertUser(id = "u1", email = "a@example.com")
+
+        assertFailsWith<SQLException> {
+            dataSource.insertEvent(
+                id = "e1",
+                ownerId = "u1",
+                startAt = "2026-10-25 10:00:00",
+                endAt = "2026-10-25 10:00:00",
+            )
+        }
+        assertFailsWith<SQLException> {
+            dataSource.insertEvent(
+                id = "e2",
+                ownerId = "u1",
+                startAt = "2026-10-25 10:00:00",
+                endAt = "2026-10-25 09:00:00",
+            )
+        }
+    }
+
+    @Test
+    fun `없는 사용자의 일정은 저장할 수 없다`() {
+        val dataSource = migrated()
+
+        assertFailsWith<SQLException> { dataSource.insertEvent(id = "e1", ownerId = "nobody") }
+    }
+
+    @Test
+    fun `사용자를 지우면 그 사용자의 일정도 지워진다`() {
+        val dataSource = migrated()
+        dataSource.insertUser(id = "u1", email = "a@example.com")
+        dataSource.insertUser(id = "u2", email = "b@example.com")
+        dataSource.insertEvent(id = "e1", ownerId = "u1")
+        dataSource.insertEvent(id = "e2", ownerId = "u2")
+
+        dataSource.execute("DELETE FROM users WHERE id = 'u1'")
+
+        assertEquals(1, dataSource.count("events"))
+    }
+
+    @Test
+    fun `일정 설명을 주지 않으면 빈 문자열이 된다`() {
+        val dataSource = migrated()
+        dataSource.insertUser(id = "u1", email = "a@example.com")
+        dataSource.insertEvent(id = "e1", ownerId = "u1")
+
+        val description =
+            dataSource.connection.use {
+                it.createStatement().use { statement ->
+                    statement.executeQuery("SELECT description FROM events WHERE id = 'e1'").use { rs ->
+                        rs.next()
+                        rs.getString(1)
+                    }
+                }
+            }
+
+        assertEquals("", description)
+    }
 }
+
+/** description 은 생략해서 컬럼 기본값을 쓴다. */
+internal fun DataSource.insertEvent(
+    id: String,
+    ownerId: String,
+    startAt: String = "2026-10-25 10:00:00",
+    endAt: String = "2026-10-25 11:00:00",
+) = execute(
+    "INSERT INTO events (id, owner_id, title, start_at, end_at, created_at, updated_at) " +
+        "VALUES ('$id', '$ownerId', 'title', '$startAt', '$endAt', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+)
 
 internal fun DataSource.execute(sql: String) {
     connection.use { it.createStatement().use { statement -> statement.execute(sql) } }
