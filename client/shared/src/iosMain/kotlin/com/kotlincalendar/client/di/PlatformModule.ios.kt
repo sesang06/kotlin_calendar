@@ -10,6 +10,6 @@ import org.koin.dsl.module
 actual val platformModule: Module =
     module {
         single<HttpClientEngine> { Darwin.create() }
-        single { ApiConfig() }
+        single { ApiConfig(httpBaseUrl = "http://localhost:8080", grpcBaseUrl = "http://localhost:50051") }
         single<GrpcClientFactory> { GrpcClientFactory { null } }
     }

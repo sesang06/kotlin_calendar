@@ -13,8 +13,59 @@ permissions:
   contents: read
 
 jobs:
+  changes:
+    name: Detect changes
+    runs-on: ubuntu-latest
+    outputs:
+      lint: ${{ steps.filter.outputs.lint }}
+      server: ${{ steps.filter.outputs.server }}
+      migration: ${{ steps.filter.outputs.migration }}
+      client: ${{ steps.filter.outputs.client }}
+      client_ios: ${{ steps.filter.outputs.client_ios }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            lint:
+              - '**/*.kt'
+              - '**/*.kts'
+              - '.editorconfig'
+              - '.github/workflows/ci.yml'
+            server:
+              - 'server/**'
+              - 'proto/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle/**'
+              - '.github/workflows/ci.yml'
+            migration:
+              - 'server/src/main/resources/db/migration/**'
+              - 'server/src/test/**/migration/**'
+              - 'server/src/test/**/*Migration*Test.kt'
+              - 'server/build.gradle.kts'
+              - '.github/workflows/ci.yml'
+            client:
+              - 'client/**'
+              - 'proto/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle/**'
+              - '.github/workflows/ci.yml'
+            client_ios:
+              - 'client/shared/**'
+              - 'client/iosApp/**'
+              - 'proto/**'
+              - 'build.gradle.kts'
+              - 'settings.gradle.kts'
+              - 'gradle/**'
+              - '.github/workflows/ci.yml'
+
   lint:
     name: ktlint
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.lint == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +78,8 @@ jobs:
 
   server-test:
     name: Server tests
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.server == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -43,8 +96,42 @@ jobs:
           name: server-test-reports
           path: server/build/reports/tests
 
+  migration-test:
+    name: DB migrations (PostgreSQL)
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.migration == 'true'
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: calendar
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      # 일회용 CI 컨테이너 전용 접속 정보 (비밀값 아님).
+      MIGRATION_TEST_POSTGRES_URL: jdbc:postgresql://localhost:5432/calendar?user=postgres&password=postgres
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@v4
+      - run: ./gradlew :server:test --tests "*MigrationIntegrationTest"
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-test-reports
+          path: server/build/reports/tests
+
   client-test:
     name: Client tests (JVM / Android / Wasm)
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.client == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -69,6 +156,8 @@ jobs:
 
   client-ios-test:
     name: Client tests (iOS)
+    needs: changes
+    if: github.event_name == 'push' || needs.changes.outputs.client_ios == 'true'
     runs-on: macos-latest
     steps:
       - uses: actions/checkout@v4
