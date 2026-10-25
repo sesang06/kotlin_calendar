@@ -1,0 +1,94 @@
+---
+name: feature-worktree
+description: kotlin_calendar 작업을 피처 단위로 나누고 피처마다 git worktree와 브랜치를 만들어 병렬로 개발하는 규칙. 요청을 피처로 쪼개는 기준, 브랜치·worktree 이름, 의존 피처(stacked) 처리, worktree별 Gradle 설정, 머지 후 정리가 필요할 때 사용. 코드 변경이 들어가는 작업을 시작할 때 가장 먼저 읽는다.
+---
+
+# 피처별 worktree
+
+**한 피처 = 한 브랜치 = 한 worktree = 한 PR.** `main`에서 직접 작업하지 않는다.
+
+## 1. 작업을 피처로 나누기
+
+요청을 받으면 코드를 쓰기 전에 피처 목록을 만든다.
+
+| 기준 | 예 |
+|---|---|
+| 혼자 머지돼도 빌드·테스트가 통과한다 | `server-event-crud`는 클라이언트 없이도 머지 가능 |
+| 리뷰어가 한 번에 이해할 수 있다 (변경 ~400줄 이하 권장) | 크면 계층별로 쪼갬: `server-event-repository` → `server-event-service` → `server-event-handlers` |
+| 영역이 섞이지 않는다 | 서버·클라이언트·proto·CI 변경은 가능하면 다른 피처 |
+
+순서 규칙:
+1. **proto 변경은 별도 피처로 먼저** (`proto-<리소스>`). 서버·클라이언트 피처가 그 위에 쌓인다.
+2. 서로 의존하지 않는 피처는 병렬로 진행한다 (각자 `main`에서 분기).
+3. 의존하는 피처는 **stacked**: 선행 피처 브랜치에서 분기하고, PR base도 선행 브랜치로 둔다.
+
+피처 목록은 이 형식으로 사용자에게 먼저 보여준다:
+
+```
+| # | 피처(브랜치) | 범위 | base | 의존 |
+|---|---|---|---|---|
+| 1 | feat/proto-event | proto/calendar/v1/event.proto | main | - |
+| 2 | feat/server-event-crud | server/** | feat/proto-event | 1 |
+| 3 | feat/client-calendar-screen | client/shared/** | feat/proto-event | 1 |
+| 4 | chore/ci-cache | .github/** | main | - |
+```
+
+## 2. 이름 규칙
+
+| 항목 | 규칙 | 예 |
+|---|---|---|
+| 브랜치 | `<type>/<scope>-<요약>` (kebab-case). type: `feat`, `fix`, `refactor`, `test`, `chore`, `docs` | `feat/server-event-crud` |
+| worktree 경로 | 저장소 **바깥** 형제 디렉터리 `../kotlin_calendar-worktrees/<브랜치의 / 를 - 로>` | `../kotlin_calendar-worktrees/feat-server-event-crud` |
+| scope | `proto`, `server`, `client`, `ci`, `build`, `agents` | |
+
+worktree를 저장소 안에 만들지 않는다 (Gradle·ktlint가 중첩 프로젝트로 인식).
+
+## 3. worktree 만들기
+
+```bash
+git fetch origin
+# 독립 피처
+git worktree add -b feat/server-event-crud ../kotlin_calendar-worktrees/feat-server-event-crud origin/main
+# stacked 피처
+git worktree add -b feat/client-calendar-screen ../kotlin_calendar-worktrees/feat-client-calendar-screen feat/proto-event
+
+# 커밋되지 않는 로컬 설정 복사
+cp local.properties ../kotlin_calendar-worktrees/feat-server-event-crud/
+```
+
+- 원격이 아직 없으면 `origin/main` 대신 `main`.
+- 이후 그 피처의 모든 편집·빌드·커밋은 **그 worktree 디렉터리 안에서만** 한다. 다른 worktree의 파일을 건드리지 않는다.
+- 각 worktree는 자기 `build/`를 쓴다. 첫 빌드는 느리지만 Gradle 캐시(`~/.gradle`)는 공유된다.
+- 여러 피처를 병렬 에이전트로 돌릴 때는 에이전트 하나에 worktree 하나만 맡긴다.
+
+## 4. 피처 안에서의 작업
+
+1. 관련 스킬을 읽는다 (`AGENTS.md`의 스킬 표).
+2. 작은 단위로 커밋 (Conventional Commits: `feat(server): add EventService.createEvent`).
+3. 끝나면 `pull-request` 스킬로 검증 → push → PR.
+4. 리뷰 반영도 같은 worktree에서 커밋을 추가한다 (force-push로 리뷰 이력을 지우지 않는다).
+
+## 5. stacked 피처 갱신
+
+선행 피처가 수정되면:
+
+```bash
+cd ../kotlin_calendar-worktrees/feat-client-calendar-screen
+git fetch origin
+git rebase origin/feat/proto-event     # 아직 리뷰 전이면 rebase
+git merge origin/feat/proto-event      # 리뷰 중이면 merge
+```
+
+선행 PR이 `main`에 머지되면 후속 PR의 base를 `main`으로 바꾼다: `gh pr edit <번호> --base main`.
+
+## 6. 정리
+
+PR이 머지되면:
+
+```bash
+git worktree remove ../kotlin_calendar-worktrees/feat-server-event-crud
+git branch -d feat/server-event-crud
+git worktree prune
+```
+
+`git worktree list`로 남은 worktree를 확인한다. 머지되지 않은 worktree는 사용자 확인 없이 지우지 않는다.

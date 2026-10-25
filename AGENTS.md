@@ -17,7 +17,10 @@ kotlin_calendar/
 │   └── src/main/resources/application.yaml
 ├── gradle/libs.versions.toml
 ├── .editorconfig            # ktlint 규칙
-└── .github/workflows/ci.yml # ktlint + 서버/클라이언트 테스트
+├── .agents/skills/          # 에이전트 스킬
+└── .github/
+    ├── workflows/ci.yml     # ktlint + 서버/클라이언트 테스트
+    └── pull_request_template.md
 ```
 
 ## 아키텍처 결정
@@ -34,6 +37,18 @@ kotlin_calendar/
 | 테스트 | 서버 JUnit5 + MockK, 클라이언트 commonTest + Fake + Turbine |
 | 린트 | ktlint (`ktlint_official`) |
 | CI | GitHub Actions |
+| 협업 | 피처별 worktree + PR, 역할별 리뷰 에이전트 |
+| 저장소 | https://github.com/sesang06/kotlin_calendar (public) |
+
+## 작업 흐름 (필수)
+
+코드가 바뀌는 모든 작업은 이 순서를 따른다. `main`에 직접 커밋하지 않는다.
+
+1. **피처 분할** — 요청을 독립적으로 머지 가능한 피처로 나누고 목록을 사용자에게 보여준다 (`feature-worktree`).
+2. **worktree** — 피처마다 브랜치와 `../kotlin_calendar-worktrees/<브랜치>` worktree를 만들고 그 안에서만 작업한다. 독립 피처는 병렬, 의존 피처는 stacked.
+3. **PR** — ktlint·테스트 검증 후 피처마다 PR 하나를 연다 (`pull-request`, `.github/pull_request_template.md`).
+4. **리뷰** — PR을 만든 에이전트는 리뷰하지 않는다. 변경 경로에 따라 역할별(architecture / testing / contract / security-config) **별도 리뷰 에이전트**를 새 컨텍스트로 띄워 `pr-review` 스킬로 리뷰한다.
+5. **반영·머지** — Blocker/Major를 새 커밋으로 반영하고 해당 역할에 재리뷰를 요청한다. 머지는 사용자가 하거나 명시적으로 지시할 때만.
 
 ## 스킬
 
@@ -41,6 +56,9 @@ kotlin_calendar/
 
 | 영역 | 스킬 | 언제 |
 |---|---|---|
+| 흐름 | `feature-worktree` | 작업 시작: 피처 분할, 브랜치·worktree 생성, stacked 처리, 정리 |
+| 흐름 | `pull-request` | 검증 → push → PR 생성, 리뷰 요청, 반영, 머지 조건 |
+| 흐름 | `pr-review` | 리뷰 에이전트: 역할 배정, 체크리스트, 심각도, `gh pr review` 형식 |
 | 공통 | `proto-contract` | `.proto` 작성·변경, 코드 생성, gRPC↔HTTP 경로 매핑 |
 | 공통 | `api-transport` | gRPC/HTTP 전송 방식, 서버 이중 노출, 클라이언트 전송 선택 |
 | 공통 | `ktlint` | 코드 스타일, `ktlintCheck`/`ktlintFormat` |
