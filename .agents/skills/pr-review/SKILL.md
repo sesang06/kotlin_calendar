@@ -18,7 +18,7 @@ description: kotlin_calendar Pull Request를 별도의 리뷰 에이전트가 �
 | `architecture` | 계층·의존 방향, 패키지 위치, DI 배선, MVVM 규칙, 중복 | `server/**/main/**`, `client/**/commonMain/**`, `client/*App/**` | `ktor-server-structure`, `ktor-handler`, `ktor-service`, `ktor-repository`, `kmp-mvvm`, `kmp-data-layer`, `kmp-project-structure` |
 | `testing` | 테스트 존재·충분성, MockK·Fake 사용법, 경계값, 외부 의존 없음 | `server/**`, `client/shared/**` (main 코드가 바뀌면 항상) | `ktor-mockk-testing`, `kmp-testing` |
 | `contract` | proto 하위 호환, 네이밍, HTTP 매핑 표, 서버·클라이언트 양쪽 반영 | `proto/**`, `**/handler/**`, `**/data/remote/**` | `proto-contract`, `api-transport` |
-| `security-config` | 비밀값·접속 정보 노출, DB 설정·주입, CORS, CI 권한, 의존성 버전 | `**/application.yaml`, `**/database/**`, `.github/**`, `gradle/**`, `*.gradle.kts` | `server-database`, `github-actions-ci`, `ktlint` |
+| `security-config` | 비밀값·접속 정보 노출, DB 설정·주입, DB 스키마·마이그레이션, CORS, CI 권한, 의존성 버전 | `**/application.yaml`, `**/database/**`, `**/db/migration/**`, `.github/**`, `gradle/**`, `*.gradle.kts` | `server-database`, `github-actions-ci`, `ktlint` |
 
 - 조건에 하나라도 걸리면 그 역할을 배정한다. 아무 것도 안 걸리면(문서만 바뀐 PR 등) `architecture` 하나만.
 - **자기 역할 범위만** 리뷰한다. 범위 밖 문제를 우연히 봤으면 "범위 밖" 표시로 짧게만 남긴다.
@@ -62,6 +62,8 @@ description: kotlin_calendar Pull Request를 별도의 리뷰 에이전트가 �
 **security-config**
 - URL·비밀번호·토큰이 하드코딩되거나 커밋되지 않았는가? (`application.yaml`은 `$ENV:default`만)
 - DB 선택이 `databaseModule` 한 곳에서만 이뤄지는가?
+- 마이그레이션: 머지된 `V` 파일을 수정하지 않았는가? 새 테이블이 Supabase RLS 반복 마이그레이션에 추가됐는가? 제약 이름·타입 규칙(`server-database`)을 지키는가? 제약 조건 테스트가 있는가?
+- 비밀번호·토큰 컬럼이 원문이 아닌 해시인가?
 - CORS가 필요한 host만 허용하는가?
 - CI `permissions` 최소, 시크릿이 `pull_request`에서 쓰이지 않는가?
 - 의존성 버전이 고정돼 있고 알려진 문제 버전이 아닌가?

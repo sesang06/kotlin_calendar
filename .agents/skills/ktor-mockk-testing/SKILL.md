@@ -143,8 +143,9 @@ class EventGrpcHandlerTest {
 
 ```kotlin
 class ExposedEventRepositoryTest {
-    private val provider = H2DatabaseProvider("jdbc:h2:mem:${UUID.randomUUID()};DB_CLOSE_DELAY=-1")
-    private val database = provider.connect().also { transaction(it) { SchemaUtils.create(EventTable) } }
+    // 운영과 같은 스키마를 쓰기 위해 Flyway 마이그레이션을 적용한다 (SchemaUtils.create 금지).
+    private val provider = H2DatabaseProvider("jdbc:h2:mem:${UUID.randomUUID()};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1")
+    private val database = provider.connect().also { DatabaseMigrator(provider.dataSource(), DatabaseVendor.POSTGRESQL).migrate() }
     private val repo = ExposedEventRepository(database)
 
     @Test
@@ -160,15 +161,15 @@ class ExposedEventRepositoryTest {
 
 ```kotlin
 @Test
-fun `provider가 mysql이면 MySqlDatabaseProvider`() {
+fun `provider가 supabase이면 SupabaseDatabaseProvider`() {
     val config = MapApplicationConfig(
-        "database.provider" to "mysql",
-        "database.mysql.url" to "jdbc:mysql://localhost/x",
-        "database.mysql.user" to "u",
-        "database.mysql.password" to "p",
-        "database.mysql.maxPoolSize" to "2",
+        "database.provider" to "supabase",
+        "database.supabase.url" to "jdbc:postgresql://localhost/x",
+        "database.supabase.user" to "u",
+        "database.supabase.password" to "p",
+        "database.supabase.maxPoolSize" to "2",
     )
-    assertIs<MySqlDatabaseProvider>(databaseProviderFrom(config))
+    assertIs<SupabaseDatabaseProvider>(databaseProviderFrom(config))
 }
 ```
 

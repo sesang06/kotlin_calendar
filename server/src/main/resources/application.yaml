@@ -13,7 +13,7 @@ cors:
   hosts: "$CORS_HOSTS:localhost:8081,localhost:8080"
 
 database:
-  # supabase | mysql | h2  (server-database 스킬)
+  # supabase | h2  (server-database 스킬)
   provider: "$DB_PROVIDER:supabase"
   supabase:
     # Supabase 대시보드 > Connect > Session pooler 의 JDBC URL
@@ -22,10 +22,5 @@ database:
     user: "$SUPABASE_DB_USER:"
     password: "$SUPABASE_DB_PASSWORD:"
     maxPoolSize: "$SUPABASE_DB_POOL_SIZE:5"
-  mysql:
-    url: "$MYSQL_URL:jdbc:mysql://localhost:3306/calendar"
-    user: "$MYSQL_USER:root"
-    password: "$MYSQL_PASSWORD:"
-    maxPoolSize: "$MYSQL_POOL_SIZE:10"
   h2:
-    url: "$H2_URL:jdbc:h2:mem:calendar;DB_CLOSE_DELAY=-1"
+    url: "$H2_URL:jdbc:h2:mem:calendar;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH;DB_CLOSE_DELAY=-1"
