@@ -1,11 +1,14 @@
 package com.kotlincalendar.client.presentation.calendar
 
+import com.kotlincalendar.client.domain.model.Event
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class CalendarMonthGridTest {
     @Test
@@ -62,5 +65,70 @@ class CalendarMonthGridTest {
         val days = buildMonthGrid(LocalDate(2024, 2, 1)).flatten().filter { it.isInCurrentMonth }
 
         assertEquals((1..29).map { LocalDate(2024, 2, it) }, days.map { it.date })
+    }
+
+    @Test
+    fun monthGridRange_october2026_coversPaddedWeeks() {
+        val range = monthGridRange(LocalDate(2026, 10, 1))
+
+        assertEquals(LocalDate(2026, 9, 27), range.start)
+        assertEquals(LocalDate(2026, 10, 31), range.endInclusive)
+    }
+
+    @Test
+    fun eventDays_multiDayEvent_marksEachDayButNotEndAtMidnight() {
+        val event =
+            Event(
+                id = "e",
+                title = "여행",
+                start = Instant.parse("2026-10-10T09:00:00Z"),
+                end = Instant.parse("2026-10-13T00:00:00Z"),
+            )
+
+        val days = eventDays(listOf(event), TimeZone.UTC, LocalDate(2026, 9, 27)..LocalDate(2026, 10, 31))
+
+        assertEquals(setOf(LocalDate(2026, 10, 10), LocalDate(2026, 10, 11), LocalDate(2026, 10, 12)), days)
+    }
+
+    @Test
+    fun eventDays_clipsToRange() {
+        val event =
+            Event(
+                id = "e",
+                title = "긴 일정",
+                start = Instant.parse("2026-09-20T00:00:00Z"),
+                end = Instant.parse("2026-09-29T00:00:00Z"),
+            )
+
+        val days = eventDays(listOf(event), TimeZone.UTC, LocalDate(2026, 9, 27)..LocalDate(2026, 10, 31))
+
+        assertEquals(setOf(LocalDate(2026, 9, 27), LocalDate(2026, 9, 28)), days)
+    }
+
+    @Test
+    fun weekRange_startsOnSunday() {
+        // 2026-10-28은 수요일.
+        val range = weekRange(LocalDate(2026, 10, 28))
+
+        assertEquals(LocalDate(2026, 10, 25), range.start)
+        assertEquals(LocalDate(2026, 10, 31), range.endInclusive)
+    }
+
+    @Test
+    fun groupEventsByDay_returnsSevenDaysWithOverlappingEvents() {
+        val event =
+            Event(
+                id = "e",
+                title = "이틀 일정",
+                start = Instant.parse("2026-10-26T22:00:00Z"),
+                end = Instant.parse("2026-10-27T02:00:00Z"),
+            )
+
+        val days = groupEventsByDay(listOf(event), TimeZone.UTC, weekRange(LocalDate(2026, 10, 28)))
+
+        assertEquals(7, days.size)
+        assertEquals(listOf("e"), days[1].events.map { it.id })
+        assertEquals(listOf("e"), days[2].events.map { it.id })
+        assertTrue(days[0].events.isEmpty())
     }
 }

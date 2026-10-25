@@ -8,8 +8,10 @@ import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
 import com.kotlincalendar.proto.calendar.v1.EventApiClient
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import com.squareup.wire.GrpcCall
 import com.kotlincalendar.proto.calendar.v1.Event as ProtoEvent
 
@@ -21,11 +23,17 @@ class GrpcEventRemoteDataSource(
     override suspend fun listEvents(request: ListEventsRequest): ListEventsResponse =
         authSession.withAuthRetry { token -> api.ListEvents().withBearer(token).execute(request) }
 
+    override suspend fun listEventsInRange(request: ListEventsInRangeRequest): ListEventsResponse =
+        authSession.withAuthRetry { token -> api.ListEventsInRange().withBearer(token).execute(request) }
+
     override suspend fun getEvent(request: GetEventRequest): ProtoEvent =
         authSession.withAuthRetry { token -> api.GetEvent().withBearer(token).execute(request) }
 
     override suspend fun createEvent(request: CreateEventRequest): ProtoEvent =
         authSession.withAuthRetry { token -> api.CreateEvent().withBearer(token).execute(request) }
+
+    override suspend fun updateEvent(request: UpdateEventRequest): ProtoEvent =
+        authSession.withAuthRetry { token -> api.UpdateEvent().withBearer(token).execute(request) }
 
     override suspend fun deleteEvent(request: DeleteEventRequest): DeleteEventResponse =
         authSession.withAuthRetry { token -> api.DeleteEvent().withBearer(token).execute(request) }

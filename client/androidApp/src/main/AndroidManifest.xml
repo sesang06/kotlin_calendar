@@ -5,6 +5,7 @@
 
     <!-- 로컬 개발 서버(http, h2c gRPC) 접속용. 운영 빌드에서는 끈다. -->
     <application
+        android:name=".KotlinCalendarApplication"
         android:label="Kotlin Calendar"
         android:usesCleartextTraffic="true">
         <activity

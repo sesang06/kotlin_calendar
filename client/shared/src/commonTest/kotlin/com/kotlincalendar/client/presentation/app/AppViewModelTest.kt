@@ -20,6 +20,7 @@ import kotlin.time.Instant
 class AppViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private val repo = FakeAuthRepository()
+    private val sampleUser = User("user-1", "user@example.com", "User", Instant.fromEpochMilliseconds(0))
 
     @BeforeTest
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -37,12 +38,38 @@ class AppViewModelTest {
     @Test
     fun savedSession_startsLoggedIn() =
         runTest(dispatcher) {
-            repo.restoredUser = User("user-1", "user@example.com", "User", Instant.fromEpochMilliseconds(0))
+            repo.restoredUser = sampleUser
             val vm = AppViewModel(repo)
 
             advanceUntilIdle()
 
-            assertEquals(AppUiState(isRestoringSession = false, isLoggedIn = true), vm.state.value)
+            assertEquals(AppUiState(isRestoringSession = false, startLoggedIn = true, isLoggedIn = true), vm.state.value)
+        }
+
+    @Test
+    fun logout_setsLoggedOutButKeepsStartDestination() =
+        runTest(dispatcher) {
+            repo.restoredUser = sampleUser
+            val vm = AppViewModel(repo)
+            advanceUntilIdle()
+
+            vm.logout()
+            advanceUntilIdle()
+
+            assertEquals(AppUiState(isRestoringSession = false, startLoggedIn = true, isLoggedIn = false), vm.state.value)
+        }
+
+    @Test
+    fun loginAfterStart_setsLoggedIn() =
+        runTest(dispatcher) {
+            val vm = AppViewModel(repo)
+            advanceUntilIdle()
+
+            repo.loginResult = Result.success(sampleUser)
+            repo.login("user@example.com", "pw")
+            advanceUntilIdle()
+
+            assertTrue(vm.state.value.isLoggedIn)
         }
 
     @Test
@@ -52,6 +79,6 @@ class AppViewModelTest {
 
             advanceUntilIdle()
 
-            assertEquals(AppUiState(isRestoringSession = false, isLoggedIn = false), vm.state.value)
+            assertEquals(AppUiState(isRestoringSession = false, startLoggedIn = false, isLoggedIn = false), vm.state.value)
         }
 }

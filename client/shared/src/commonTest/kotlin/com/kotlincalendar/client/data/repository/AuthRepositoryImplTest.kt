@@ -12,6 +12,8 @@ import com.kotlincalendar.proto.auth.v1.LogoutResponse
 import com.kotlincalendar.proto.auth.v1.RefreshTokenResponse
 import com.kotlincalendar.proto.auth.v1.SignUpResponse
 import com.kotlincalendar.proto.auth.v1.User
+import com.squareup.wire.GrpcException
+import com.squareup.wire.GrpcStatus
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -340,5 +342,47 @@ class AuthRepositoryImplTest {
             repository.logout()
 
             assertNull(userStorage.user)
+        }
+
+    @Test
+    fun refreshCurrentUser_success_savesUserAndAuthenticates() =
+        runTest {
+            val remote = FakeAuthRemoteDataSource()
+            val userStorage = FakeUserStorage()
+            val repository = AuthRepositoryImpl(remote, FakeTokenStorage(initialTokens = domainTokens), userStorage)
+            remote.getMeResults += Result.success(protoUser)
+
+            val result = repository.refreshCurrentUser()
+
+            assertEquals(domainUser, result.getOrThrow())
+            assertEquals(listOf("access-123"), remote.getMeAccessTokens)
+            assertEquals(domainUser, userStorage.user)
+            assertEquals(AuthState.Authenticated(domainUser), repository.authState.value)
+        }
+
+    @Test
+    fun refreshCurrentUser_unauthenticated_refreshesTokenAndRetriesOnce() =
+        runTest {
+            val remote = FakeAuthRemoteDataSource()
+            val repository = AuthRepositoryImpl(remote, FakeTokenStorage(initialTokens = domainTokens), FakeUserStorage())
+            remote.getMeResults += Result.failure(GrpcException(GrpcStatus.UNAUTHENTICATED, "expired"))
+            remote.getMeResults += Result.success(protoUser)
+            remote.refreshTokenResult =
+                Result.success(RefreshTokenResponse(tokens = protoTokens.copy(access_token = "access-new")))
+
+            val result = repository.refreshCurrentUser()
+
+            assertTrue(result.isSuccess)
+            assertEquals(listOf("access-123", "access-new"), remote.getMeAccessTokens)
+        }
+
+    @Test
+    fun refreshCurrentUser_withoutTokens_fails() =
+        runTest {
+            val remote = FakeAuthRemoteDataSource()
+            val repository = AuthRepositoryImpl(remote, FakeTokenStorage(), FakeUserStorage())
+
+            assertTrue(repository.refreshCurrentUser().isFailure)
+            assertTrue(remote.getMeAccessTokens.isEmpty())
         }
 }
