@@ -2,6 +2,7 @@ package com.kotlincalendar.server.event.handler.http
 
 import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import com.kotlincalendar.server.common.auth.TokenProvider
 import com.kotlincalendar.server.common.error.UnauthenticatedException
 import com.kotlincalendar.server.common.http.receiveProto
@@ -48,6 +49,19 @@ class EventHttpHandler(
         call.respondProto(response)
     }
 
+    suspend fun listInRange(call: ApplicationCall) {
+        val userId = authenticate(call)
+        val params = call.request.queryParameters
+        val events =
+            eventService.getEventsInRange(
+                userId = userId,
+                startDate = parseDate(params["start_date"], "start_date"),
+                endDate = parseDate(params["end_date"], "end_date"),
+                timeZone = parseTimeZone(params["time_zone"]),
+            )
+        call.respondProto(ListEventsResponse.newBuilder().addAllEvents(events.map { it.toProto() }).build())
+    }
+
     suspend fun get(call: ApplicationCall) {
         val userId = authenticate(call)
         val id = requireId(call.parameters["id"])
@@ -60,6 +74,14 @@ class EventHttpHandler(
         val request = call.receiveProto(CreateEventRequest.parser())
         val created = eventService.createEvent(request.toCommand(ownerUserId = userId))
         call.respondProto(created.toProto(), HttpStatusCode.Created)
+    }
+
+    suspend fun update(call: ApplicationCall) {
+        val userId = authenticate(call)
+        val id = requireId(call.parameters["id"])
+        val request = call.receiveProto(UpdateEventRequest.parser())
+        val updated = eventService.updateEvent(request.toCommand(id = id, ownerUserId = userId))
+        call.respondProto(updated.toProto())
     }
 
     suspend fun delete(call: ApplicationCall) {

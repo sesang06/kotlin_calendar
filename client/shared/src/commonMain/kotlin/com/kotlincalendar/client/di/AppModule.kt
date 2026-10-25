@@ -74,7 +74,7 @@ val appModule =
         single<Clock> { Clock.System }
         single<TimeZone> { TimeZone.currentSystemDefault() }
         viewModelOf(::CalendarViewModel)
-        viewModel { params -> EventCreateViewModel(params.get(), get(), get(), get()) }
+        viewModel { params -> EventCreateViewModel(params.get(), get(), get(), get(), params.getOrNull<String>()) }
         viewModel { params -> EventDetailViewModel(params.get(), get(), get()) }
     }
 

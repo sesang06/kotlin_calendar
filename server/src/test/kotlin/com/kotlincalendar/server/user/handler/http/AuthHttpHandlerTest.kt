@@ -20,6 +20,7 @@ import com.kotlincalendar.server.user.domain.AuthTokens
 import com.kotlincalendar.server.user.domain.User
 import com.kotlincalendar.server.user.service.UserService
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
@@ -39,6 +40,7 @@ import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.days
 import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
+import com.kotlincalendar.proto.auth.v1.User as UserMessage
 
 class AuthHttpHandlerTest {
     private val userService = mockk<UserService>()
@@ -260,5 +262,32 @@ class AuthHttpHandlerTest {
 
             assertEquals(HttpStatusCode.Unauthorized, response.status)
             coVerify(exactly = 0) { userService.logout(any()) }
+        }
+
+    @Test
+    fun `GET me는 200과 사용자 정보를 protobuf로 반환한다`() =
+        withApp {
+            every { tokenProvider.verifyAccessToken("valid-token", any()) } returns "u-1"
+            coEvery { userService.getMe("u-1") } returns
+                User(id = "u-1", email = "test@example.com", displayName = "Tester", createdAt = fixedNow)
+
+            val response =
+                client.get("/api/auth/me") {
+                    header(HttpHeaders.Authorization, "Bearer valid-token")
+                }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            val user = UserMessage.parseFrom(response.body<ByteArray>())
+            assertEquals("u-1", user.id)
+            assertEquals("Tester", user.displayName)
+        }
+
+    @Test
+    fun `GET me에 인증 헤더가 없으면 401이고 Service를 호출하지 않는다`() =
+        withApp {
+            val response = client.get("/api/auth/me")
+
+            assertEquals(HttpStatusCode.Unauthorized, response.status)
+            coVerify(exactly = 0) { userService.getMe(any()) }
         }
 }

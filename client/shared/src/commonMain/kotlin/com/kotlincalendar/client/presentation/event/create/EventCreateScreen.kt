@@ -53,7 +53,9 @@ fun EventCreateRoute(
     initialDate: LocalDate,
     onCreated: (eventId: String) -> Unit,
     onBack: () -> Unit,
-    viewModel: EventCreateViewModel = koinViewModel { parametersOf(initialDate) },
+    eventId: String? = null,
+    onUpdated: (eventId: String) -> Unit = onCreated,
+    viewModel: EventCreateViewModel = koinViewModel { parametersOf(initialDate, eventId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -62,6 +64,7 @@ fun EventCreateRoute(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is EventCreateEffect.Created -> onCreated(effect.eventId)
+                is EventCreateEffect.Updated -> onUpdated(effect.eventId)
                 EventCreateEffect.NavigateBack -> onBack()
             }
         }
@@ -90,7 +93,7 @@ fun EventCreateScreen(
     onAction: (EventCreateAction) -> Unit,
 ) {
     var picker by remember { mutableStateOf<PickerTarget?>(null) }
-    val enabled = !state.isSaving
+    val enabled = !state.isSaving && !state.isLoadingEvent
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -117,7 +120,7 @@ fun EventCreateScreen(
                         Text("취소")
                     }
                     Text(
-                        text = "새 일정",
+                        text = if (state.isEditing) "일정 수정" else "새 일정",
                         style = MaterialTheme.typography.titleLarge,
                     )
                     Spacer(modifier = Modifier.size(64.dp, 1.dp))

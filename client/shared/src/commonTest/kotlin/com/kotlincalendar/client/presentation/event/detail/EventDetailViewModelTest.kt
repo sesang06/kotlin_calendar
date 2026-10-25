@@ -166,4 +166,17 @@ class EventDetailViewModelTest {
                 assertEquals(EventDetailEffect.NavigateBack, awaitItem())
             }
         }
+
+    @Test
+    fun edit_afterLoaded_emitsNavigateToEdit() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.success(sampleEvent)
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            vm.effects.test {
+                vm.onAction(EventDetailAction.Edit)
+                assertEquals(EventDetailEffect.NavigateToEdit("event-1"), awaitItem())
+            }
+        }
 }

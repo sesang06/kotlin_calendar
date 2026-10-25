@@ -16,6 +16,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -35,6 +36,7 @@ fun EventDetailRoute(
     viewModel: EventDetailViewModel,
     onBack: () -> Unit,
     onDeleted: () -> Unit,
+    onEdit: (eventId: String) -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -44,6 +46,7 @@ fun EventDetailRoute(
             when (effect) {
                 EventDetailEffect.NavigateBack -> onBack()
                 EventDetailEffect.Deleted -> onDeleted()
+                is EventDetailEffect.NavigateToEdit -> onEdit(effect.eventId)
             }
         }
     }
@@ -158,6 +161,14 @@ private fun EventDetailContent(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
+
+        OutlinedButton(
+            onClick = { onAction(EventDetailAction.Edit) },
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            enabled = !state.isDeleting,
+        ) {
+            Text("수정")
+        }
 
         Button(
             onClick = { onAction(EventDetailAction.RequestDelete) },

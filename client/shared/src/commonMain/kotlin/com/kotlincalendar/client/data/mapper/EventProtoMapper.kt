@@ -2,6 +2,7 @@ package com.kotlincalendar.client.data.mapper
 
 import com.kotlincalendar.client.domain.model.Event
 import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import kotlin.time.Instant
 import com.kotlincalendar.proto.calendar.v1.Event as ProtoEvent
 
@@ -19,6 +20,21 @@ fun ProtoEvent.toDomain(): Event =
 fun com.squareup.wire.Instant.toKotlinInstant(): Instant = Instant.fromEpochSeconds(getEpochSecond(), getNano().toLong())
 
 fun Instant.toWireInstant(): com.squareup.wire.Instant = com.squareup.wire.ofEpochSecond(epochSeconds, nanosecondsOfSecond.toLong())
+
+fun toUpdateEventRequest(
+    id: String,
+    title: String,
+    startTime: Instant,
+    endTime: Instant,
+    description: String = "",
+): UpdateEventRequest =
+    UpdateEventRequest(
+        id = id,
+        title = title,
+        start_time = startTime.toWireInstant(),
+        end_time = endTime.toWireInstant(),
+        description = description,
+    )
 
 fun toCreateEventRequest(
     title: String,
