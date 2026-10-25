@@ -25,6 +25,12 @@ kotlin {
     sourceSets {
         wasmJsMain.dependencies {
             implementation(project(":client:shared"))
+            implementation(compose.components.resources)
         }
     }
+}
+
+compose.resources {
+    packageOfResClass = "com.kotlincalendar.client.web.resources"
+    generateResClass = always
 }
