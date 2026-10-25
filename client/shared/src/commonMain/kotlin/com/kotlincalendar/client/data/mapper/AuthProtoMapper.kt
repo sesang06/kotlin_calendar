@@ -11,15 +11,15 @@ fun ProtoUser.toDomain(): User =
         id = id,
         email = email,
         displayName = display_name,
-        createdAt = Instant.fromEpochMilliseconds(created_at_epoch_millis),
+        createdAt = created_at?.toKotlinInstant() ?: Instant.DISTANT_PAST,
     )
 
 fun ProtoAuthTokens.toDomain(): AuthTokens =
     AuthTokens(
         accessToken = access_token,
-        accessTokenExpiresAt = Instant.fromEpochMilliseconds(access_token_expires_at_epoch_millis),
+        accessTokenExpiresAt = access_token_expires_at?.toKotlinInstant() ?: Instant.DISTANT_PAST,
         refreshToken = refresh_token,
-        refreshTokenExpiresAt = Instant.fromEpochMilliseconds(refresh_token_expires_at_epoch_millis),
+        refreshTokenExpiresAt = refresh_token_expires_at?.toKotlinInstant() ?: Instant.DISTANT_PAST,
     )
 
 fun User.toProto(): ProtoUser =
@@ -27,13 +27,13 @@ fun User.toProto(): ProtoUser =
         id = id,
         email = email,
         display_name = displayName,
-        created_at_epoch_millis = createdAt.toEpochMilliseconds(),
+        created_at = createdAt.toWireInstant(),
     )
 
 fun AuthTokens.toProto(): ProtoAuthTokens =
     ProtoAuthTokens(
         access_token = accessToken,
-        access_token_expires_at_epoch_millis = accessTokenExpiresAt.toEpochMilliseconds(),
+        access_token_expires_at = accessTokenExpiresAt.toWireInstant(),
         refresh_token = refreshToken,
-        refresh_token_expires_at_epoch_millis = refreshTokenExpiresAt.toEpochMilliseconds(),
+        refresh_token_expires_at = refreshTokenExpiresAt.toWireInstant(),
     )

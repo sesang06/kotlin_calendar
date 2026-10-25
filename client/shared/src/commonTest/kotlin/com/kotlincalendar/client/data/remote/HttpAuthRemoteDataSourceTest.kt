@@ -29,15 +29,21 @@ class HttpAuthRemoteDataSourceTest {
             id = "user-1",
             email = "user@example.com",
             display_name = "User One",
-            created_at_epoch_millis = 1_700_000_000_000L,
+            created_at =
+                com.squareup.wire.Instant
+                    .ofEpochMilli(1_700_000_000_000L),
         )
 
     private val sampleTokens =
         AuthTokens(
             access_token = "access-token-123",
-            access_token_expires_at_epoch_millis = 1_700_000_900_000L,
+            access_token_expires_at =
+                com.squareup.wire.Instant
+                    .ofEpochMilli(1_700_000_900_000L),
             refresh_token = "refresh-token-456",
-            refresh_token_expires_at_epoch_millis = 1_700_086_400_000L,
+            refresh_token_expires_at =
+                com.squareup.wire.Instant
+                    .ofEpochMilli(1_700_086_400_000L),
         )
 
     @Test

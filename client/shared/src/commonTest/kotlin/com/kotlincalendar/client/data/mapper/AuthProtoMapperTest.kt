@@ -17,7 +17,7 @@ class AuthProtoMapperTest {
                 id = "user-123",
                 email = "user@example.com",
                 display_name = "User Name",
-                created_at_epoch_millis = 1_700_000_000_000L,
+                created_at = instant.toWireInstant(),
             )
 
         val domain = proto.toDomain()
@@ -43,9 +43,9 @@ class AuthProtoMapperTest {
         val proto =
             ProtoAuthTokens(
                 access_token = "access-token-xyz",
-                access_token_expires_at_epoch_millis = 1_700_000_900_000L,
+                access_token_expires_at = accessExp.toWireInstant(),
                 refresh_token = "refresh-token-abc",
-                refresh_token_expires_at_epoch_millis = 1_700_086_400_000L,
+                refresh_token_expires_at = refreshExp.toWireInstant(),
             )
 
         val domain = proto.toDomain()
