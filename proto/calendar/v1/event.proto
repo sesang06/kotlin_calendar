@@ -2,7 +2,11 @@ syntax = "proto3";
 
 package calendar.v1;
 
+<<<<<<< HEAD
 import "google/protobuf/timestamp.proto";
+=======
+import "google/api/annotations.proto";
+>>>>>>> 14388a7 (feat(proto): add google.api.http transcoding annotations to EventApi)
 
 option java_multiple_files = true;
 option java_package = "com.kotlincalendar.proto.calendar.v1";
@@ -77,8 +81,25 @@ message ErrorResponse {
 // | CreateEvent | POST   /api/events                                    | 201 Event              |
 // | DeleteEvent | DELETE /api/events/{id}                               | 204                    |
 service EventApi {
-  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
-  rpc GetEvent(GetEventRequest) returns (Event);
-  rpc CreateEvent(CreateEventRequest) returns (Event);
-  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse);
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse) {
+    option (google.api.http) = {
+      get: "/api/events"
+    };
+  }
+  rpc GetEvent(GetEventRequest) returns (Event) {
+    option (google.api.http) = {
+      get: "/api/events/{id}"
+    };
+  }
+  rpc CreateEvent(CreateEventRequest) returns (Event) {
+    option (google.api.http) = {
+      post: "/api/events"
+      body: "*"
+    };
+  }
+  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse) {
+    option (google.api.http) = {
+      delete: "/api/events/{id}"
+    };
+  }
 }
