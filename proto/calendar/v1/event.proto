@@ -2,11 +2,8 @@ syntax = "proto3";
 
 package calendar.v1;
 
-<<<<<<< HEAD
-import "google/protobuf/timestamp.proto";
-=======
 import "google/api/annotations.proto";
->>>>>>> 14388a7 (feat(proto): add google.api.http transcoding annotations to EventApi)
+import "google/protobuf/timestamp.proto";
 
 option java_multiple_files = true;
 option java_package = "com.kotlincalendar.proto.calendar.v1";

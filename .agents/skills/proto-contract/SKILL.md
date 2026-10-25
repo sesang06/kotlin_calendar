@@ -74,7 +74,6 @@ option java_package = "com.kotlincalendar.proto.calendar.v1";
 | `AuthApi.Logout` | `POST /api/auth/logout` | `LogoutRequest` | `204` |
 
 - 비밀번호·토큰 같은 민감 값은 **요청 바디로만** 보낸다 (URL·쿼리 금지). 응답 메시지에 비밀번호·해시를 담지 않는다.
-
 - 매핑 정보는 `.proto`의 `service` 위 주석에도 둔다 (생성 코드를 보는 사람도 알 수 있게). 주석에는 RPC, HTTP 메서드+경로, 성공 상태 코드+응답 메시지가 모두 들어가야 하며, 열은 합쳐서 줄여도 된다 (예: `RPC | HTTP | 성공` 3열).
 - 소유권이 있는 리소스는 소유자 ID를 요청 메시지로 받지 않는다. 서버가 access token에서 정하고, 남의 리소스는 `NOT_FOUND`로 숨긴다.
 - HTTP 바디는 `Content-Type: application/x-protobuf` (protobuf 바이너리).
