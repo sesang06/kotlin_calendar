@@ -46,6 +46,11 @@ data class EventCreateDestination(
 )
 
 @Serializable
+data class EventEditDestination(
+    val id: String,
+)
+
+@Serializable
 data class EventDetailDestination(
     val id: String,
 )
@@ -141,6 +146,23 @@ fun App(appViewModel: AppViewModel = koinViewModel()) {
                             refreshCalendar()
                             navController.popBackStack()
                         },
+                        onEdit = { id -> navController.navigate(EventEditDestination(id)) },
+                    )
+                }
+
+                composable<EventEditDestination> { entry ->
+                    val destination = entry.toRoute<EventEditDestination>()
+                    EventCreateRoute(
+                        // 수정 모드에서는 불러온 일정의 날짜로 덮어쓴다.
+                        initialDate = LocalDate.fromEpochDays(0),
+                        eventId = destination.id,
+                        onCreated = {},
+                        onUpdated = {
+                            refreshCalendar()
+                            // 수정 화면과 이전 상세 화면을 함께 닫아 캘린더로 돌아간다.
+                            navController.popBackStack(CalendarDestination, inclusive = false)
+                        },
+                        onBack = { navController.popBackStack() },
                     )
                 }
             }

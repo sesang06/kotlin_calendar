@@ -19,5 +19,14 @@ interface EventRepository {
         description: String = "",
     ): Result<Event>
 
+    /** 일정 전체 수정. */
+    suspend fun updateEvent(
+        id: String,
+        title: String,
+        startTime: Instant,
+        endTime: Instant,
+        description: String = "",
+    ): Result<Event>
+
     suspend fun deleteEvent(id: String): Result<Unit>
 }

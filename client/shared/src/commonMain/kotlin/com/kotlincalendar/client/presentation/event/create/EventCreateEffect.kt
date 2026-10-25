@@ -5,5 +5,9 @@ sealed interface EventCreateEffect {
         val eventId: String,
     ) : EventCreateEffect
 
+    data class Updated(
+        val eventId: String,
+    ) : EventCreateEffect
+
     data object NavigateBack : EventCreateEffect
 }

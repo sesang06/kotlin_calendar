@@ -3,6 +3,7 @@ package com.kotlincalendar.client.data.repository
 import com.kotlincalendar.client.common.runCatchingCancellable
 import com.kotlincalendar.client.data.mapper.toCreateEventRequest
 import com.kotlincalendar.client.data.mapper.toDomain
+import com.kotlincalendar.client.data.mapper.toUpdateEventRequest
 import com.kotlincalendar.client.data.remote.EventRemoteDataSource
 import com.kotlincalendar.client.domain.model.Event
 import com.kotlincalendar.client.domain.repository.EventRepository
@@ -45,6 +46,26 @@ class EventRepositoryImpl(
             remote
                 .createEvent(
                     toCreateEventRequest(
+                        title = title,
+                        startTime = startTime,
+                        endTime = endTime,
+                        description = description,
+                    ),
+                ).toDomain()
+        }
+
+    override suspend fun updateEvent(
+        id: String,
+        title: String,
+        startTime: Instant,
+        endTime: Instant,
+        description: String,
+    ): Result<Event> =
+        runCatchingCancellable {
+            remote
+                .updateEvent(
+                    toUpdateEventRequest(
+                        id = id,
                         title = title,
                         startTime = startTime,
                         endTime = endTime,
