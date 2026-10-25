@@ -7,6 +7,7 @@ import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
 import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
@@ -35,6 +36,22 @@ class HttpEventRemoteDataSource(
                     .get("/api/events") {
                         bearer(token)
                         parameter("date", request.date)
+                        if (request.time_zone.isNotBlank()) {
+                            parameter("time_zone", request.time_zone)
+                        }
+                    }.body<ByteArray>()
+            }
+        return ListEventsResponse.ADAPTER.decode(bytes)
+    }
+
+    override suspend fun listEventsInRange(request: ListEventsInRangeRequest): ListEventsResponse {
+        val bytes =
+            authSession.withAuthRetry { token ->
+                client
+                    .get("/api/events/range") {
+                        bearer(token)
+                        parameter("start_date", request.start_date)
+                        parameter("end_date", request.end_date)
                         if (request.time_zone.isNotBlank()) {
                             parameter("time_zone", request.time_zone)
                         }

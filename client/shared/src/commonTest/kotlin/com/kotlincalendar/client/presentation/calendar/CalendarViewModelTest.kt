@@ -252,4 +252,45 @@ class CalendarViewModelTest {
                 assertEquals(CalendarEffect.NavigateToCreateEvent(date), awaitItem())
             }
         }
+
+    @Test
+    fun init_loadsMonthGridRangeAndMarksEventDays() =
+        runTest(dispatcher) {
+            repo.rangeEventsResult = Result.success(listOf(event("e1", "회의", 9, 10)))
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            assertEquals(listOf(LocalDate(2026, 9, 27) to LocalDate(2026, 10, 31)), repo.requestedRanges)
+            assertEquals(setOf(today), vm.state.value.eventDays)
+        }
+
+    @Test
+    fun nextMonth_reloadsMonthRange_butSelectingSameMonthDoesNot() =
+        runTest(dispatcher) {
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            vm.onAction(CalendarAction.SelectDate(LocalDate(2026, 10, 3)))
+            advanceUntilIdle()
+            assertEquals(1, repo.requestedRanges.size)
+
+            vm.onAction(CalendarAction.NextMonth)
+            advanceUntilIdle()
+            assertEquals(2, repo.requestedRanges.size)
+            assertEquals(LocalDate(2026, 11, 1), repo.requestedRanges.last().first)
+        }
+
+    @Test
+    fun monthRangeFailure_clearsEventDaysWithoutError() =
+        runTest(dispatcher) {
+            repo.rangeEventsResult = Result.failure(IllegalStateException("boom"))
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            assertTrue(
+                vm.state.value.eventDays
+                    .isEmpty(),
+            )
+            assertNull(vm.state.value.errorMessage)
+        }
 }

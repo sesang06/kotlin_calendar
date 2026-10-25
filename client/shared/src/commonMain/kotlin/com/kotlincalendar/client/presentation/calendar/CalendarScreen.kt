@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -196,6 +197,7 @@ private fun MonthCalendar(
                     week.forEach { day ->
                         DayCell(
                             day = day,
+                            hasEvents = day.date in state.eventDays,
                             isToday = day.date == state.today,
                             isSelected = day.date == state.selectedDate,
                             onClick = { onAction(CalendarAction.SelectDate(day.date)) },
@@ -238,6 +240,7 @@ private fun MonthHeader(
 @Composable
 private fun DayCell(
     day: CalendarDay,
+    hasEvents: Boolean,
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -280,6 +283,17 @@ private fun DayCell(
             fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
             style = MaterialTheme.typography.bodyMedium,
         )
+        if (hasEvents) {
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 5.dp)
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(if (isSelected) colors.onPrimary else colors.primary),
+            )
+        }
     }
 }
 
