@@ -150,9 +150,82 @@ class EventDetailViewModelTest {
                 assertTrue(vm.state.value.isLoaded)
                 expectNoEvents()
             }
+            assertEquals(listOf("event-1"), repo.deletedEventIds)
 
             vm.onAction(EventDetailAction.DismissError)
             assertNull(vm.state.value.deleteErrorMessage)
+        }
+
+    @Test
+    fun confirmDeleteTwice_deletesOnlyOnce() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.success(sampleEvent)
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            vm.onAction(EventDetailAction.RequestDelete)
+            vm.onAction(EventDetailAction.ConfirmDelete)
+            vm.onAction(EventDetailAction.ConfirmDelete)
+            advanceUntilIdle()
+
+            assertEquals(listOf("event-1"), repo.deletedEventIds)
+        }
+
+    @Test
+    fun retry_whileLoading_isIgnored() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.success(sampleEvent)
+            val vm = createViewModel()
+
+            assertTrue(vm.state.value.isLoading)
+            vm.onAction(EventDetailAction.Retry)
+            advanceUntilIdle()
+
+            assertEquals(listOf("event-1"), repo.requestedEventIds)
+            assertTrue(vm.state.value.isLoaded)
+        }
+
+    @Test
+    fun requestDelete_whileDeleting_isIgnored() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.success(sampleEvent)
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            vm.onAction(EventDetailAction.RequestDelete)
+            vm.onAction(EventDetailAction.ConfirmDelete)
+            assertTrue(vm.state.value.isDeleting)
+
+            vm.onAction(EventDetailAction.RequestDelete)
+            assertFalse(vm.state.value.showDeleteConfirm)
+            advanceUntilIdle()
+
+            assertEquals(listOf("event-1"), repo.deletedEventIds)
+        }
+
+    @Test
+    fun loadFailure_withoutMessage_usesDefaultMessage() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.failure(RuntimeException())
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            assertEquals("일정을 불러오지 못했습니다.", vm.state.value.loadErrorMessage)
+        }
+
+    @Test
+    fun deleteFailure_withoutMessage_usesDefaultMessage() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.success(sampleEvent)
+            repo.deleteEventResult = Result.failure(RuntimeException())
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            vm.onAction(EventDetailAction.RequestDelete)
+            vm.onAction(EventDetailAction.ConfirmDelete)
+            advanceUntilIdle()
+
+            assertEquals("일정을 삭제하지 못했습니다.", vm.state.value.deleteErrorMessage)
         }
 
     @Test
