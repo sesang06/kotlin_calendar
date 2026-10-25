@@ -15,6 +15,13 @@ import org.koin.dsl.module
 private const val DEV_SERVER_PORT = "8081"
 private const val LOCAL_HTTP_BASE_URL = "http://localhost:8080"
 
+// 시간대 DB가 없으면 kotlinx-datetime의 TimeZone.currentSystemDefault()가 IANA ID 대신 "SYSTEM"을 돌려주고,
+// 서버는 이를 invalid time_zone(400)으로 거절한다. 모듈을 로드해 브라우저 시간대를 "Asia/Seoul" 같은 ID로 얻는다.
+@JsModule("@js-joda/timezone")
+external object JsJodaTimeZoneModule : JsAny
+
+private val jsJodaTz = JsJodaTimeZoneModule
+
 actual val platformModule: Module =
     module {
         single<KeyValueStorage> { BrowserKeyValueStorage() }
