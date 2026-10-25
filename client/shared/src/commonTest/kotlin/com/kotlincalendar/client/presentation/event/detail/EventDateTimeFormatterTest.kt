@@ -1,5 +1,6 @@
 package com.kotlincalendar.client.presentation.event.detail
 
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.UtcOffset
 import kotlinx.datetime.asTimeZone
 import kotlin.test.Test
@@ -40,5 +41,10 @@ class EventDateTimeFormatterTest {
             "2026년 10월 25일 (일) 23:00 – 2026년 10월 26일 (월) 01:00",
             formatEventRange(start, end, seoul),
         )
+    }
+
+    @Test
+    fun formatKoreanDate_includesWeekday() {
+        assertEquals("2026년 10월 25일 (일)", formatKoreanDate(LocalDate(2026, 10, 25)))
     }
 }
