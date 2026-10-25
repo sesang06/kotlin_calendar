@@ -1,7 +1,7 @@
 package com.kotlincalendar.client.di
 
-import com.kotlincalendar.client.data.local.InMemoryKeyValueStorage
 import com.kotlincalendar.client.data.local.KeyValueStorage
+import com.kotlincalendar.client.data.local.UserDefaultsKeyValueStorage
 import com.kotlincalendar.client.data.remote.ApiConfig
 import com.kotlincalendar.client.data.remote.grpc.GrpcClientFactory
 import io.ktor.client.engine.HttpClientEngine
@@ -11,7 +11,7 @@ import org.koin.dsl.module
 
 actual val platformModule: Module =
     module {
-        single<KeyValueStorage> { InMemoryKeyValueStorage() }
+        single<KeyValueStorage> { UserDefaultsKeyValueStorage() }
         single<HttpClientEngine> { Darwin.create() }
         single { ApiConfig(httpBaseUrl = "http://localhost:8080", grpcBaseUrl = "http://localhost:50051") }
         single<GrpcClientFactory> { GrpcClientFactory { null } }

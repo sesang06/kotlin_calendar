@@ -1,13 +1,12 @@
 package com.kotlincalendar.client.presentation.calendar
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
@@ -16,18 +15,25 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -40,29 +46,32 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kotlincalendar.client.presentation.theme.WeekendColors
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import org.koin.compose.viewmodel.koinViewModel
 
 private val WideLayoutMinWidth = 720.dp
 private val WeekdayLabels = listOf("일", "월", "화", "수", "목", "금", "토")
-private val SundayColor = Color(0xFFD32F2F)
-private val SaturdayColor = Color(0xFF1976D2)
 
 /**
  * 메인 캘린더 화면.
  *
  * @param onCreateEvent 추가 버튼을 누르면 선택된 날짜와 함께 호출된다.
  * @param onEventClick 일정 행을 누르면 일정 id와 함께 호출된다.
+ * @param onOpenProfile 내 정보 버튼을 누르면 호출된다.
  * @param refreshKey 값이 바뀔 때마다(null 제외) 선택된 날짜의 일정을 다시 불러온다. 일정 생성·삭제 후 갱신용.
  */
 @Composable
 fun CalendarRoute(
     onCreateEvent: (LocalDate) -> Unit,
     onEventClick: (String) -> Unit,
+    onOpenProfile: () -> Unit,
     refreshKey: Any? = null,
     viewModel: CalendarViewModel = koinViewModel(),
 ) {
@@ -84,6 +93,7 @@ fun CalendarRoute(
     CalendarScreen(
         state = state,
         onAction = viewModel::onAction,
+        onOpenProfile = onOpenProfile,
     )
 }
 
@@ -91,12 +101,15 @@ fun CalendarRoute(
 fun CalendarScreen(
     state: CalendarUiState,
     onAction: (CalendarAction) -> Unit,
+    onOpenProfile: () -> Unit = {},
 ) {
     Scaffold(
         floatingActionButton = {
-            FloatingActionButton(onClick = { onAction(CalendarAction.CreateEvent) }) {
-                Text("+", style = MaterialTheme.typography.headlineSmall)
-            }
+            ExtendedFloatingActionButton(
+                onClick = { onAction(CalendarAction.CreateEvent) },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
+                text = { Text("일정 추가") },
+            )
         },
     ) { paddingValues ->
         BoxWithConstraints(
@@ -105,26 +118,37 @@ fun CalendarScreen(
                     .fillMaxSize()
                     .padding(paddingValues),
         ) {
-            if (maxWidth >= WideLayoutMinWidth) {
-                Row(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    MonthCalendar(
-                        state = state,
-                        onAction = onAction,
-                        modifier = Modifier.weight(1f),
-                    )
-                    Spacer(modifier = Modifier.width(24.dp))
-                    EventList(
-                        state = state,
-                        onAction = onAction,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                    )
-                }
-            } else {
-                Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
+            val isWide = maxWidth >= WideLayoutMinWidth
+            Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
+                AppHeader(onOpenProfile = onOpenProfile)
+                Spacer(modifier = Modifier.height(8.dp))
+                ViewModeSelector(selected = state.viewMode, onSelect = { onAction(CalendarAction.ChangeViewMode(it)) })
+                Spacer(modifier = Modifier.height(12.dp))
+                if (state.viewMode != CalendarViewMode.MONTH) {
+                    PeriodHeader(title = periodTitle(state), onAction = onAction)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (state.viewMode == CalendarViewMode.WEEK) {
+                        WeekList(state = state, onAction = onAction, modifier = Modifier.weight(1f))
+                    } else {
+                        EventList(state = state, onAction = onAction, modifier = Modifier.weight(1f))
+                    }
+                } else if (isWide) {
+                    Row(modifier = Modifier.fillMaxSize()) {
+                        MonthCalendar(
+                            state = state,
+                            onAction = onAction,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Spacer(modifier = Modifier.width(24.dp))
+                        EventList(
+                            state = state,
+                            onAction = onAction,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                        )
+                    }
+                } else {
                     MonthCalendar(state = state, onAction = onAction)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    HorizontalDivider()
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(20.dp))
                     EventList(
                         state = state,
                         onAction = onAction,
@@ -137,6 +161,30 @@ fun CalendarScreen(
 }
 
 @Composable
+private fun AppHeader(onOpenProfile: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = "Kotlin Calendar",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.weight(1f),
+        )
+        IconButton(onClick = onOpenProfile) {
+            Icon(
+                Icons.Filled.AccountCircle,
+                contentDescription = "내 정보",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp),
+            )
+        }
+    }
+}
+
+@Composable
 private fun MonthCalendar(
     state: CalendarUiState,
     onAction: (CalendarAction) -> Unit,
@@ -144,31 +192,40 @@ private fun MonthCalendar(
 ) {
     val weeks = remember(state.visibleMonth) { buildMonthGrid(state.visibleMonth) }
 
-    Column(modifier = modifier) {
-        MonthHeader(month = state.visibleMonth, onAction = onAction)
-        Spacer(modifier = Modifier.height(8.dp))
-        Row(modifier = Modifier.fillMaxWidth()) {
-            WeekdayLabels.forEachIndexed { index, label ->
-                Text(
-                    text = label,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    style = MaterialTheme.typography.labelMedium,
-                    color = weekdayColor(index) ?: MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Spacer(modifier = Modifier.height(4.dp))
-        weeks.forEach { week ->
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
+    ) {
+        Column(modifier = Modifier.padding(12.dp)) {
+            MonthHeader(month = state.visibleMonth, onAction = onAction)
+            Spacer(modifier = Modifier.height(8.dp))
             Row(modifier = Modifier.fillMaxWidth()) {
-                week.forEach { day ->
-                    DayCell(
-                        day = day,
-                        isToday = day.date == state.today,
-                        isSelected = day.date == state.selectedDate,
-                        onClick = { onAction(CalendarAction.SelectDate(day.date)) },
+                WeekdayLabels.forEachIndexed { index, label ->
+                    Text(
+                        text = label,
                         modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        style = MaterialTheme.typography.labelMedium,
+                        color = weekdayColor(index) ?: MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+            Spacer(modifier = Modifier.height(4.dp))
+            weeks.forEach { week ->
+                Row(modifier = Modifier.fillMaxWidth()) {
+                    week.forEach { day ->
+                        DayCell(
+                            day = day,
+                            hasEvents = day.date in state.eventDays,
+                            isToday = day.date == state.today,
+                            isSelected = day.date == state.selectedDate,
+                            onClick = { onAction(CalendarAction.SelectDate(day.date)) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
         }
@@ -184,19 +241,19 @@ private fun MonthHeader(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        TextButton(onClick = { onAction(CalendarAction.PreviousMonth) }) {
-            Text("<")
-        }
         Text(
             text = "${month.year}년 ${month.month.number}월",
             style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.weight(1f),
-            textAlign = TextAlign.Center,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f).padding(start = 8.dp),
         )
-        TextButton(onClick = { onAction(CalendarAction.NextMonth) }) {
-            Text(">")
+        IconButton(onClick = { onAction(CalendarAction.PreviousMonth) }) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "이전 달")
         }
-        OutlinedButton(onClick = { onAction(CalendarAction.GoToToday) }) {
+        IconButton(onClick = { onAction(CalendarAction.NextMonth) }) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "다음 달")
+        }
+        FilledTonalButton(onClick = { onAction(CalendarAction.GoToToday) }) {
             Text("오늘")
         }
     }
@@ -205,6 +262,7 @@ private fun MonthHeader(
 @Composable
 private fun DayCell(
     day: CalendarDay,
+    hasEvents: Boolean,
     isToday: Boolean,
     isSelected: Boolean,
     onClick: () -> Unit,
@@ -213,14 +271,21 @@ private fun DayCell(
     val colors = MaterialTheme.colorScheme
     val baseColor =
         when (day.date.dayOfWeek) {
-            DayOfWeek.SUNDAY -> SundayColor
-            DayOfWeek.SATURDAY -> SaturdayColor
+            DayOfWeek.SUNDAY -> WeekendColors.Sunday
+            DayOfWeek.SATURDAY -> WeekendColors.Saturday
             else -> colors.onSurface
+        }
+    val background =
+        when {
+            isSelected -> colors.primary
+            isToday -> colors.primaryContainer
+            else -> Color.Transparent
         }
     val textColor =
         when {
             isSelected -> colors.onPrimary
-            !day.isInCurrentMonth -> baseColor.copy(alpha = 0.38f)
+            isToday -> colors.onPrimaryContainer
+            !day.isInCurrentMonth -> baseColor.copy(alpha = 0.35f)
             else -> baseColor
         }
 
@@ -228,10 +293,9 @@ private fun DayCell(
         modifier =
             modifier
                 .aspectRatio(1f)
-                .padding(2.dp)
+                .padding(3.dp)
                 .clip(CircleShape)
-                .then(if (isSelected) Modifier.background(colors.primary) else Modifier)
-                .then(if (isToday && !isSelected) Modifier.border(BorderStroke(1.5.dp, colors.primary), CircleShape) else Modifier)
+                .background(background)
                 .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
@@ -241,6 +305,17 @@ private fun DayCell(
             fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
             style = MaterialTheme.typography.bodyMedium,
         )
+        if (hasEvents) {
+            Box(
+                modifier =
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(bottom = 5.dp)
+                        .size(5.dp)
+                        .clip(CircleShape)
+                        .background(if (isSelected) colors.onPrimary else colors.primary),
+            )
+        }
     }
 }
 
@@ -252,13 +327,19 @@ private fun EventList(
 ) {
     Column(modifier = modifier) {
         Text(
-            text = "${state.selectedDate.month.number}월 ${state.selectedDate.day}일 일정",
+            text = "${state.selectedDate.month.number}월 ${state.selectedDate.day}일",
             style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = if (state.events.isEmpty()) "일정 없음" else "일정 ${state.events.size}개",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(12.dp))
         when {
             state.isLoading -> {
-                Box(modifier = Modifier.fillMaxWidth().padding(24.dp), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             }
@@ -281,16 +362,15 @@ private fun EventList(
             }
 
             state.events.isEmpty() -> {
-                Text(
-                    text = "일정이 없습니다.",
-                    modifier = Modifier.fillMaxWidth().padding(24.dp),
-                    textAlign = TextAlign.Center,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                EmptyEvents(onCreate = { onAction(CalendarAction.CreateEvent) })
             }
 
             else -> {
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                // FAB에 가리지 않도록 아래 여백을 둔다.
+                LazyColumn(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(bottom = 88.dp),
+                ) {
                     items(state.events, key = { it.id }) { event ->
                         EventRow(event = event, onClick = { onAction(CalendarAction.OpenEvent(event.id)) })
                     }
@@ -301,29 +381,76 @@ private fun EventList(
 }
 
 @Composable
+private fun EmptyEvents(onCreate: () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(
+            modifier = Modifier.padding(vertical = 28.dp, horizontal = 16.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = "이 날은 일정이 없어요",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            TextButton(onClick = onCreate) {
+                Text("+ 일정 추가하기")
+            }
+        }
+    }
+}
+
+@Composable
 private fun EventRow(
     event: CalendarEventItem,
     onClick: () -> Unit,
 ) {
-    Card(
+    Surface(
         modifier =
             Modifier
                 .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
                 .clickable(onClick = onClick),
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
     ) {
         Row(
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
+            modifier = Modifier.padding(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = event.timeRange,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            Box(
+                modifier =
+                    Modifier
+                        .width(4.dp)
+                        .height(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary),
             )
-            Spacer(modifier = Modifier.width(16.dp))
-            Text(
-                text = event.title,
-                style = MaterialTheme.typography.bodyLarge,
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.bodyLarge,
+                    fontWeight = FontWeight.Medium,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = event.timeRange,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
             )
         }
     }
@@ -331,7 +458,196 @@ private fun EventRow(
 
 private fun weekdayColor(index: Int): Color? =
     when (index) {
-        0 -> SundayColor
-        DAYS_IN_WEEK - 1 -> SaturdayColor
+        0 -> WeekendColors.Sunday
+        DAYS_IN_WEEK - 1 -> WeekendColors.Saturday
         else -> null
     }
+
+@Composable
+private fun ViewModeSelector(
+    selected: CalendarViewMode,
+    onSelect: (CalendarViewMode) -> Unit,
+) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Row(modifier = Modifier.padding(4.dp)) {
+            CalendarViewMode.entries.forEach { mode ->
+                val isSelected = mode == selected
+                Box(
+                    modifier =
+                        Modifier
+                            .clip(CircleShape)
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { onSelect(mode) }
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = mode.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeriodHeader(
+    title: String,
+    onAction: (CalendarAction) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f).padding(start = 4.dp),
+        )
+        IconButton(onClick = { onAction(CalendarAction.PreviousPeriod) }) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "이전")
+        }
+        IconButton(onClick = { onAction(CalendarAction.NextPeriod) }) {
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "다음")
+        }
+        FilledTonalButton(onClick = { onAction(CalendarAction.GoToToday) }) {
+            Text("오늘")
+        }
+    }
+}
+
+internal fun periodTitle(state: CalendarUiState): String =
+    when (state.viewMode) {
+        CalendarViewMode.MONTH -> "${state.visibleMonth.year}년 ${state.visibleMonth.month.number}월"
+        CalendarViewMode.WEEK -> {
+            val range = weekRange(state.selectedDate)
+            val start = range.start
+            val end = range.endInclusive
+            if (start.month == end.month) {
+                "${start.month.number}월 ${start.day}일 – ${end.day}일"
+            } else {
+                "${start.month.number}월 ${start.day}일 – ${end.month.number}월 ${end.day}일"
+            }
+        }
+        CalendarViewMode.DAY -> {
+            val date = state.selectedDate
+            "${date.month.number}월 ${date.day}일 (${WeekdayLabels[date.dayOfWeek.isoDayNumber % DAYS_IN_WEEK]})"
+        }
+    }
+
+@Composable
+private fun WeekList(
+    state: CalendarUiState,
+    onAction: (CalendarAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(bottom = 88.dp),
+    ) {
+        items(state.weekDays, key = { it.date.toString() }) { day ->
+            WeekDayRow(
+                day = day,
+                isToday = day.date == state.today,
+                isSelected = day.date == state.selectedDate,
+                onSelect = { onAction(CalendarAction.SelectDate(day.date)) },
+                onOpenEvent = { onAction(CalendarAction.OpenEvent(it)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeekDayRow(
+    day: CalendarWeekDay,
+    isToday: Boolean,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onOpenEvent: (String) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .clickable(onClick = onSelect),
+        shape = MaterialTheme.shapes.medium,
+        color = if (isSelected) colors.primaryContainer else colors.surfaceContainerLowest,
+        tonalElevation = 1.dp,
+    ) {
+        Row(modifier = Modifier.padding(12.dp)) {
+            Column(
+                modifier = Modifier.width(48.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val weekdayIndex = day.date.dayOfWeek.isoDayNumber % DAYS_IN_WEEK
+                Text(
+                    text = WeekdayLabels[weekdayIndex],
+                    style = MaterialTheme.typography.labelMedium,
+                    color = weekdayColor(weekdayIndex) ?: colors.onSurfaceVariant,
+                )
+                Text(
+                    text = day.date.day.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isToday) colors.primary else colors.onSurface,
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (day.events.isEmpty()) {
+                    Text(
+                        text = "일정 없음",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+                day.events.forEach { event ->
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable { onOpenEvent(event.id) }
+                                .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.primary),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = event.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = event.timeRange,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

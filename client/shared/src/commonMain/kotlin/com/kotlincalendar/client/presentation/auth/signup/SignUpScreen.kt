@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
@@ -75,8 +76,18 @@ fun SignUpScreen(
             modifier = Modifier.padding(paddingValues),
         ) {
             Text(
+                text = "Kotlin Calendar",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            Text(
                 text = "회원가입",
                 style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.SemiBold,
             )
 
             Spacer(modifier = Modifier.height(32.dp))

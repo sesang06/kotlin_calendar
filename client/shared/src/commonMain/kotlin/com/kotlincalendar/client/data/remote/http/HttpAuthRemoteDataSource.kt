@@ -11,12 +11,14 @@ import com.kotlincalendar.proto.auth.v1.SignUpRequest
 import com.kotlincalendar.proto.auth.v1.SignUpResponse
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
+import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.contentType
+import com.kotlincalendar.proto.auth.v1.User as ProtoUser
 
 class HttpAuthRemoteDataSource(
     private val client: HttpClient,
@@ -65,5 +67,14 @@ class HttpAuthRemoteDataSource(
                     setBody(request.encode())
                 }.body<ByteArray>()
         return if (bytes.isEmpty()) LogoutResponse() else LogoutResponse.ADAPTER.decode(bytes)
+    }
+
+    override suspend fun getMe(accessToken: String): ProtoUser {
+        val bytes =
+            client
+                .get("/api/auth/me") {
+                    header(HttpHeaders.Authorization, "Bearer $accessToken")
+                }.body<ByteArray>()
+        return ProtoUser.ADAPTER.decode(bytes)
     }
 }

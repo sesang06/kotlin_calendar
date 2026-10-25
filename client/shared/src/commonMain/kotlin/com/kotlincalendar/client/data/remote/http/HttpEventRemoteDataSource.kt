@@ -7,8 +7,10 @@ import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
 import io.ktor.client.request.HttpRequestBuilder
@@ -16,6 +18,7 @@ import io.ktor.client.request.bearerAuth
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
@@ -41,6 +44,22 @@ class HttpEventRemoteDataSource(
         return ListEventsResponse.ADAPTER.decode(bytes)
     }
 
+    override suspend fun listEventsInRange(request: ListEventsInRangeRequest): ListEventsResponse {
+        val bytes =
+            authSession.withAuthRetry { token ->
+                client
+                    .get("/api/events/range") {
+                        bearer(token)
+                        parameter("start_date", request.start_date)
+                        parameter("end_date", request.end_date)
+                        if (request.time_zone.isNotBlank()) {
+                            parameter("time_zone", request.time_zone)
+                        }
+                    }.body<ByteArray>()
+            }
+        return ListEventsResponse.ADAPTER.decode(bytes)
+    }
+
     override suspend fun getEvent(request: GetEventRequest): ProtoEvent {
         val bytes =
             authSession.withAuthRetry { token ->
@@ -54,6 +73,19 @@ class HttpEventRemoteDataSource(
             authSession.withAuthRetry { token ->
                 client
                     .post("/api/events") {
+                        bearer(token)
+                        contentType(ContentType("application", "x-protobuf"))
+                        setBody(request.encode())
+                    }.body<ByteArray>()
+            }
+        return ProtoEvent.ADAPTER.decode(bytes)
+    }
+
+    override suspend fun updateEvent(request: UpdateEventRequest): ProtoEvent {
+        val bytes =
+            authSession.withAuthRetry { token ->
+                client
+                    .patch("/api/events/${request.id}") {
                         bearer(token)
                         contentType(ContentType("application", "x-protobuf"))
                         setBody(request.encode())

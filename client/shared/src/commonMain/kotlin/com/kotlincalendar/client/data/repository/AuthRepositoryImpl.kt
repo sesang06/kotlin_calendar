@@ -3,6 +3,7 @@ package com.kotlincalendar.client.data.repository
 import com.kotlincalendar.client.common.runCatchingCancellable
 import com.kotlincalendar.client.data.mapper.toDomain
 import com.kotlincalendar.client.data.remote.AuthRemoteDataSource
+import com.kotlincalendar.client.data.remote.auth.isUnauthenticated
 import com.kotlincalendar.client.domain.model.AuthState
 import com.kotlincalendar.client.domain.model.AuthTokens
 import com.kotlincalendar.client.domain.model.User
@@ -107,6 +108,24 @@ class AuthRepositoryImpl(
         when (val state = _authState.value) {
             is AuthState.Authenticated -> state.user
             AuthState.Unauthenticated -> null
+        }
+
+    override suspend fun refreshCurrentUser(): Result<User> =
+        runCatchingCancellable {
+            val tokens = tokenStorage.getTokens() ?: error("Not logged in")
+            val proto =
+                try {
+                    remoteDataSource.getMe(tokens.accessToken)
+                } catch (e: CancellationException) {
+                    throw e
+                } catch (e: Throwable) {
+                    if (!e.isUnauthenticated()) throw e
+                    remoteDataSource.getMe(refreshToken().getOrThrow().accessToken)
+                }
+            val user = proto.toDomain()
+            userStorage.saveUser(user)
+            _authState.value = AuthState.Authenticated(user)
+            user
         }
 
     override suspend fun restoreSession(): User? {

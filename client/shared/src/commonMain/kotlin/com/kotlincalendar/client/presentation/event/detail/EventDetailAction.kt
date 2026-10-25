@@ -5,6 +5,8 @@ sealed interface EventDetailAction {
 
     data object Back : EventDetailAction
 
+    data object Edit : EventDetailAction
+
     data object RequestDelete : EventDetailAction
 
     data object ConfirmDelete : EventDetailAction

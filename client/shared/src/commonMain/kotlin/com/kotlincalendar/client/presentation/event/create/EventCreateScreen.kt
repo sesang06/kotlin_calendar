@@ -9,21 +9,28 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TimePicker
@@ -37,8 +44,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.kotlincalendar.client.presentation.event.detail.formatKoreanDate
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalTime
 import kotlinx.datetime.TimeZone
@@ -53,7 +62,9 @@ fun EventCreateRoute(
     initialDate: LocalDate,
     onCreated: (eventId: String) -> Unit,
     onBack: () -> Unit,
-    viewModel: EventCreateViewModel = koinViewModel { parametersOf(initialDate) },
+    eventId: String? = null,
+    onUpdated: (eventId: String) -> Unit = onCreated,
+    viewModel: EventCreateViewModel = koinViewModel { parametersOf(initialDate, eventId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
@@ -62,6 +73,7 @@ fun EventCreateRoute(
         viewModel.effects.collect { effect ->
             when (effect) {
                 is EventCreateEffect.Created -> onCreated(effect.eventId)
+                is EventCreateEffect.Updated -> onUpdated(effect.eventId)
                 EventCreateEffect.NavigateBack -> onBack()
             }
         }
@@ -90,7 +102,7 @@ fun EventCreateScreen(
     onAction: (EventCreateAction) -> Unit,
 ) {
     var picker by remember { mutableStateOf<PickerTarget?>(null) }
-    val enabled = !state.isSaving
+    val enabled = !state.isSaving && !state.isLoadingEvent
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -101,11 +113,11 @@ fun EventCreateScreen(
                     .fillMaxSize()
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
-                    .padding(24.dp),
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Column(
-                modifier = Modifier.widthIn(max = 480.dp).fillMaxWidth(),
+                modifier = Modifier.widthIn(max = 520.dp).fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 Row(
@@ -117,63 +129,77 @@ fun EventCreateScreen(
                         Text("취소")
                     }
                     Text(
-                        text = "새 일정",
+                        text = if (state.isEditing) "일정 수정" else "새 일정",
                         style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
                     )
-                    Spacer(modifier = Modifier.size(64.dp, 1.dp))
+                    TextButton(onClick = { onAction(EventCreateAction.Save) }, enabled = enabled) {
+                        Text("저장", fontWeight = FontWeight.SemiBold)
+                    }
                 }
 
-                OutlinedTextField(
-                    value = state.title,
-                    onValueChange = { onAction(EventCreateAction.ChangeTitle(it)) },
-                    label = { Text("제목") },
-                    singleLine = true,
-                    isError = state.titleError != null,
-                    supportingText = state.titleError?.let { error -> { Text(error) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled,
-                )
+                if (state.isLoadingEvent) {
+                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                }
 
-                DateTimeRow(
-                    label = "시작",
-                    date = state.startDate,
-                    time = state.startTime,
-                    enabled = enabled,
-                    onDateClick = { picker = PickerTarget.START_DATE },
-                    onTimeClick = { picker = PickerTarget.START_TIME },
-                )
-
-                DateTimeRow(
-                    label = "종료",
-                    date = state.endDate,
-                    time = state.endTime,
-                    enabled = enabled,
-                    onDateClick = { picker = PickerTarget.END_DATE },
-                    onTimeClick = { picker = PickerTarget.END_TIME },
-                )
-
-                state.timeError?.let { error ->
-                    Text(
-                        text = error,
-                        color = MaterialTheme.colorScheme.error,
-                        style = MaterialTheme.typography.bodySmall,
+                FormSection {
+                    OutlinedTextField(
+                        value = state.title,
+                        onValueChange = { onAction(EventCreateAction.ChangeTitle(it)) },
+                        label = { Text("제목") },
+                        placeholder = { Text("예: 팀 회의") },
+                        singleLine = true,
+                        isError = state.titleError != null,
+                        supportingText = state.titleError?.let { error -> { Text(error) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = enabled,
                     )
                 }
 
-                OutlinedTextField(
-                    value = state.description,
-                    onValueChange = { onAction(EventCreateAction.ChangeDescription(it)) },
-                    label = { Text("설명 (선택)") },
-                    minLines = 3,
-                    isError = state.descriptionError != null,
-                    supportingText = state.descriptionError?.let { error -> { Text(error) } },
-                    modifier = Modifier.fillMaxWidth(),
-                    enabled = enabled,
-                )
+                FormSection {
+                    DateTimeRow(
+                        label = "시작",
+                        date = state.startDate,
+                        time = state.startTime,
+                        enabled = enabled,
+                        onDateClick = { picker = PickerTarget.START_DATE },
+                        onTimeClick = { picker = PickerTarget.START_TIME },
+                    )
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                    DateTimeRow(
+                        label = "종료",
+                        date = state.endDate,
+                        time = state.endTime,
+                        enabled = enabled,
+                        onDateClick = { picker = PickerTarget.END_DATE },
+                        onTimeClick = { picker = PickerTarget.END_TIME },
+                    )
+                    state.timeError?.let { error ->
+                        Text(
+                            text = error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodySmall,
+                        )
+                    }
+                }
+
+                FormSection {
+                    OutlinedTextField(
+                        value = state.description,
+                        onValueChange = { onAction(EventCreateAction.ChangeDescription(it)) },
+                        label = { Text("설명 (선택)") },
+                        minLines = 3,
+                        isError = state.descriptionError != null,
+                        supportingText = state.descriptionError?.let { error -> { Text(error) } },
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = enabled,
+                    )
+                }
 
                 Button(
                     onClick = { onAction(EventCreateAction.Save) },
-                    modifier = Modifier.fillMaxWidth().height(48.dp),
+                    modifier = Modifier.fillMaxWidth().height(52.dp),
+                    shape = MaterialTheme.shapes.medium,
                     enabled = enabled,
                 ) {
                     if (state.isSaving) {
@@ -182,7 +208,7 @@ fun EventCreateScreen(
                             color = MaterialTheme.colorScheme.onPrimary,
                         )
                     } else {
-                        Text("저장")
+                        Text(if (state.isEditing) "수정 완료" else "일정 저장")
                     }
                 }
             }
@@ -241,6 +267,24 @@ fun EventCreateScreen(
 }
 
 @Composable
+private fun FormSection(content: @Composable () -> Unit) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
+        tonalElevation = 1.dp,
+        shadowElevation = 1.dp,
+    ) {
+        Column(
+            modifier = Modifier.padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
 private fun DateTimeRow(
     label: String,
     date: LocalDate,
@@ -249,23 +293,33 @@ private fun DateTimeRow(
     onDateClick: () -> Unit,
     onTimeClick: () -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelLarge)
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            OutlinedButton(
-                onClick = onDateClick,
-                enabled = enabled,
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(date.toString())
-            }
-            OutlinedButton(
-                onClick = onTimeClick,
-                enabled = enabled,
-                modifier = Modifier.weight(1f),
-            ) {
-                Text(time.toHourMinute())
-            }
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(40.dp),
+        )
+        FilledTonalButton(
+            onClick = onDateClick,
+            enabled = enabled,
+            shape = MaterialTheme.shapes.small,
+            modifier = Modifier.weight(1f),
+        ) {
+            Icon(Icons.Filled.DateRange, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(formatKoreanDate(date), maxLines = 1)
+        }
+        FilledTonalButton(
+            onClick = onTimeClick,
+            enabled = enabled,
+            shape = MaterialTheme.shapes.small,
+        ) {
+            Text(time.toHourMinute())
         }
     }
 }

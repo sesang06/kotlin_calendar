@@ -9,6 +9,7 @@ import com.kotlincalendar.proto.auth.v1.RefreshTokenRequest
 import com.kotlincalendar.proto.auth.v1.RefreshTokenResponse
 import com.kotlincalendar.proto.auth.v1.SignUpRequest
 import com.kotlincalendar.proto.auth.v1.SignUpResponse
+import com.kotlincalendar.proto.auth.v1.User as ProtoUser
 
 class FakeAuthRemoteDataSource : AuthRemoteDataSource {
     var signUpResult: Result<SignUpResponse> = Result.failure(NotImplementedError())
@@ -44,5 +45,13 @@ class FakeAuthRemoteDataSource : AuthRemoteDataSource {
         lastLogoutRequest = request
         lastLogoutAccessToken = accessToken
         return logoutResult.getOrThrow()
+    }
+
+    var getMeResults: MutableList<Result<ProtoUser>> = mutableListOf()
+    val getMeAccessTokens = mutableListOf<String>()
+
+    override suspend fun getMe(accessToken: String): ProtoUser {
+        getMeAccessTokens += accessToken
+        return getMeResults.removeAt(0).getOrThrow()
     }
 }

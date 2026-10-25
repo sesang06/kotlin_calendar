@@ -36,6 +36,11 @@ class EventDetailViewModel(
                     _effects.send(EventDetailEffect.NavigateBack)
                 }
             }
+            EventDetailAction.Edit -> {
+                if (_state.value.isLoaded) {
+                    viewModelScope.launch { _effects.send(EventDetailEffect.NavigateToEdit(eventId)) }
+                }
+            }
             EventDetailAction.RequestDelete -> {
                 val current = _state.value
                 if (current.isLoaded && !current.isDeleting) {
