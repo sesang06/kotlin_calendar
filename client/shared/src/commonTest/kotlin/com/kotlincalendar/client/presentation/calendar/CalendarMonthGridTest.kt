@@ -104,4 +104,31 @@ class CalendarMonthGridTest {
 
         assertEquals(setOf(LocalDate(2026, 9, 27), LocalDate(2026, 9, 28)), days)
     }
+
+    @Test
+    fun weekRange_startsOnSunday() {
+        // 2026-10-28은 수요일.
+        val range = weekRange(LocalDate(2026, 10, 28))
+
+        assertEquals(LocalDate(2026, 10, 25), range.start)
+        assertEquals(LocalDate(2026, 10, 31), range.endInclusive)
+    }
+
+    @Test
+    fun groupEventsByDay_returnsSevenDaysWithOverlappingEvents() {
+        val event =
+            Event(
+                id = "e",
+                title = "이틀 일정",
+                start = Instant.parse("2026-10-26T22:00:00Z"),
+                end = Instant.parse("2026-10-27T02:00:00Z"),
+            )
+
+        val days = groupEventsByDay(listOf(event), TimeZone.UTC, weekRange(LocalDate(2026, 10, 28)))
+
+        assertEquals(7, days.size)
+        assertEquals(listOf("e"), days[1].events.map { it.id })
+        assertEquals(listOf("e"), days[2].events.map { it.id })
+        assertTrue(days[0].events.isEmpty())
+    }
 }

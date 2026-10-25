@@ -293,4 +293,60 @@ class CalendarViewModelTest {
             )
             assertNull(vm.state.value.errorMessage)
         }
+
+    @Test
+    fun changeToWeek_loadsWeekRangeAndGroupsEvents() =
+        runTest(dispatcher) {
+            repo.rangeEventsResult = Result.success(listOf(event("e1", "회의", 9, 10)))
+            val vm = createViewModel()
+            advanceUntilIdle()
+
+            vm.onAction(CalendarAction.ChangeViewMode(CalendarViewMode.WEEK))
+            advanceUntilIdle()
+
+            assertEquals(LocalDate(2026, 10, 25) to LocalDate(2026, 10, 31), repo.requestedRanges.last())
+            val week = vm.state.value.weekDays
+            assertEquals(7, week.size)
+            assertEquals(listOf("e1"), week.first { it.date == today }.events.map { it.id })
+        }
+
+    @Test
+    fun nextPeriod_inWeekMode_movesSevenDays_andInDayMode_movesOneDay() =
+        runTest(dispatcher) {
+            val vm = createViewModel()
+            vm.onAction(CalendarAction.ChangeViewMode(CalendarViewMode.WEEK))
+            vm.onAction(CalendarAction.NextPeriod)
+            advanceUntilIdle()
+            assertEquals(LocalDate(2026, 11, 1), vm.state.value.selectedDate)
+
+            vm.onAction(CalendarAction.ChangeViewMode(CalendarViewMode.DAY))
+            vm.onAction(CalendarAction.PreviousPeriod)
+            advanceUntilIdle()
+            assertEquals(LocalDate(2026, 10, 31), vm.state.value.selectedDate)
+        }
+
+    @Test
+    fun dayMode_doesNotLoadRange() =
+        runTest(dispatcher) {
+            val vm = createViewModel()
+            advanceUntilIdle()
+            val before = repo.requestedRanges.size
+
+            vm.onAction(CalendarAction.ChangeViewMode(CalendarViewMode.DAY))
+            vm.onAction(CalendarAction.NextPeriod)
+            advanceUntilIdle()
+
+            assertEquals(before, repo.requestedRanges.size)
+        }
+
+    @Test
+    fun periodTitle_formatsEachMode() {
+        val base = CalendarUiState(today = today)
+
+        assertEquals("2026년 10월", periodTitle(base))
+        assertEquals("10월 25일 – 31일", periodTitle(base.copy(viewMode = CalendarViewMode.WEEK)))
+        assertEquals("11월 1일 – 7일", periodTitle(base.copy(viewMode = CalendarViewMode.WEEK, selectedDate = LocalDate(2026, 11, 3))))
+        assertEquals("9월 27일 – 10월 3일", periodTitle(base.copy(viewMode = CalendarViewMode.WEEK, selectedDate = LocalDate(2026, 10, 1))))
+        assertEquals("10월 25일 (일)", periodTitle(base.copy(viewMode = CalendarViewMode.DAY)))
+    }
 }
