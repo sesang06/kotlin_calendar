@@ -2,24 +2,38 @@ syntax = "proto3";
 
 package calendar.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option java_multiple_files = true;
 option java_package = "com.kotlincalendar.proto.calendar.v1";
 
-// 캘린더 일정. 시각은 UTC epoch millis.
+// 캘린더 일정. 시각은 google.protobuf.Timestamp.
 message Event {
   string id = 1;
   string title = 2;
-  int64 start_epoch_millis = 3;
-  int64 end_epoch_millis = 4;
-  int64 created_at_epoch_millis = 5;
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  google.protobuf.Timestamp created_at = 5;
+  // 빈 문자열이면 설명 없음.
+  string description = 6;
+  // 일정 소유자 (auth.v1.User.id). 서버가 access token에서 채운다.
+  string owner_user_id = 7;
 }
 
+// 하루 단위 일정 조회.
+// 하루 구간은 time_zone 기준 [date 00:00, 다음 날 00:00) = [day_start, day_end).
+// 이 구간과 겹치는 일정을 반환한다: start_time < day_end AND end_time > day_start.
+// (여러 날에 걸치거나 자정을 넘는 일정은 겹치는 모든 날에 포함된다.)
 message ListEventsRequest {
-  // ISO-8601 날짜 (yyyy-MM-dd), UTC 기준 하루.
+  // ISO-8601 날짜 (yyyy-MM-dd). 형식이 틀리거나 존재하지 않는 날짜면 400 / INVALID_ARGUMENT.
   string date = 1;
+  // 하루의 경계를 정하는 IANA 시간대 ID (예: "Asia/Seoul"). 비어 있으면 UTC.
+  // 유효한 IANA zone ID가 아니면 (예: "KST", "+09:00") 400 / INVALID_ARGUMENT.
+  string time_zone = 2;
 }
 
 message ListEventsResponse {
+  // 요청한 하루 구간 [day_start, day_end)와 겹치는 일정. start_time 오름차순.
   repeated Event events = 1;
 }
 
@@ -27,10 +41,16 @@ message GetEventRequest {
   string id = 1;
 }
 
+// 길이 제한은 모두 Unicode code point 기준 (UTF-16 code unit 아님).
+// 제약 위반은 400 / INVALID_ARGUMENT.
 message CreateEventRequest {
+  // 1~200자, 공백만으로 이뤄질 수 없음.
   string title = 1;
-  int64 start_epoch_millis = 2;
-  int64 end_epoch_millis = 3;
+  google.protobuf.Timestamp start_time = 2;
+  // start_time 보다 커야 함.
+  google.protobuf.Timestamp end_time = 3;
+  // 0~2000자.
+  string description = 4;
 }
 
 message DeleteEventRequest {
@@ -44,7 +64,18 @@ message ErrorResponse {
   string message = 1;
 }
 
-// gRPC: EventApi/*, HTTP: /api/events (proto-contract 스킬의 매핑 표 참고)
+// 모든 RPC는 로그인한 사용자의 access token이 필요하다.
+//   HTTP: Authorization: Bearer <access_token>
+//   gRPC: metadata "authorization: Bearer <access_token>"
+// access token이 없거나, 형식이 틀리거나, 만료되면 HTTP 401 / gRPC UNAUTHENTICATED.
+// 사용자는 자기 일정만 조회·삭제할 수 있다. 다른 사용자의 일정은 존재 여부를 숨기기 위해 NOT_FOUND.
+//
+// | RPC         | HTTP                                                  | 성공                   |
+// |-------------|-------------------------------------------------------|------------------------|
+// | ListEvents  | GET    /api/events?date=yyyy-MM-dd&time_zone=<IANA>   | 200 ListEventsResponse |
+// | GetEvent    | GET    /api/events/{id}                               | 200 Event              |
+// | CreateEvent | POST   /api/events                                    | 201 Event              |
+// | DeleteEvent | DELETE /api/events/{id}                               | 204                    |
 service EventApi {
   rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
   rpc GetEvent(GetEventRequest) returns (Event);

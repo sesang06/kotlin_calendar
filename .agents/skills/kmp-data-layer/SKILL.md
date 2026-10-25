@@ -34,7 +34,7 @@ client/shared/src/commonMain/kotlin/com/kotlincalendar/client/
 1. **domain은 data를 모른다.** domain에 Ktor·Wire·proto import 금지.
 2. **proto 메시지는 data 밖으로 나가지 않는다.** Repository 구현에서 도메인 모델로 매핑해서 반환.
 3. Repository는 `suspend fun ...: Result<T>`. 예외를 ViewModel까지 던지지 않는다. 단 `CancellationException`은 다시 던진다.
-4. 시각은 `kotlin.time.Instant` (opt-in `ExperimentalTime`), 날짜는 `kotlinx.datetime.LocalDate`. proto에서는 epoch millis / `yyyy-MM-dd` 문자열.
+4. 시각은 `kotlin.time.Instant` (opt-in `ExperimentalTime`), 날짜는 `kotlinx.datetime.LocalDate`. proto에서는 `google.protobuf.Timestamp` / `yyyy-MM-dd` 문자열.
 5. API 주소·전송 방식은 `ApiConfig`로 주입 (플랫폼별: Android 에뮬레이터 `10.0.2.2`, 그 외 `localhost`; HTTP 8080, gRPC 50051).
 
 ## HttpClient
@@ -83,14 +83,14 @@ class EventRepositoryImpl(private val remote: EventRemoteDataSource) : EventRepo
 }
 ```
 
-Wire 생성 클래스의 필드명은 proto 그대로 snake_case다 (`event.start_epoch_millis`, `Event(start_epoch_millis = ...)`). 이 이름은 `data/mapper`에서만 다루고, 도메인 모델은 camelCase로 둔다.
+Wire 생성 클래스의 필드명은 proto 그대로 snake_case다 (`event.start_time`, `Event(start_time = ...)`). 이 이름은 `data/mapper`에서만 다루고, 도메인 모델은 camelCase로 둔다.
 
 ```kotlin
 fun EventMessage.toDomain() = Event(
     id = id,
     title = title,
-    start = Instant.fromEpochMilliseconds(start_epoch_millis),
-    end = Instant.fromEpochMilliseconds(end_epoch_millis),
+    start = start_time?.let { Instant.fromEpochSeconds(it.seconds, it.nanos) } ?: Instant.DISTANT_PAST,
+    end = end_time?.let { Instant.fromEpochSeconds(it.seconds, it.nanos) } ?: Instant.DISTANT_PAST,
 )
 ```
 

@@ -43,13 +43,11 @@ option java_package = "com.kotlincalendar.proto.calendar.v1";
 
 | 의미 | proto 타입 | 비고 |
 |---|---|---|
-| 시각 | `int64 xxx_epoch_millis` | UTC. Wire·protoc 모두 KMP에서 다루기 쉬움 |
+| 시각 | `google.protobuf.Timestamp` | `import "google/protobuf/timestamp.proto";` 사용. 필드명은 `start_time`, `end_time`, `created_at` 등 (`_epoch_millis` 접미사 사용 금지) |
 | 날짜 | `string` (`yyyy-MM-dd`) | `kotlinx.datetime.LocalDate.parse` |
 | ID | `string` | UUID 문자열 |
 | 선택 값 | `optional` 필드 | proto3 기본값과 "없음" 구분 필요할 때만 |
 | 에러 (HTTP) | `ErrorResponse { string message }` | gRPC는 `Status` 사용 |
-
-`google.protobuf.Timestamp` 등 well-known type은 Wire와 protoc의 매핑이 달라서 쓰지 않는다.
 
 ## 하위 호환 (필수)
 
@@ -64,11 +62,13 @@ option java_package = "com.kotlincalendar.proto.calendar.v1";
 
 | RPC | HTTP | 요청 바디 | 응답 |
 |---|---|---|---|
-| `ListEvents` | `GET /api/events?date=yyyy-MM-dd` | 없음 (쿼리) | `ListEventsResponse` |
+| `ListEvents` | `GET /api/events?date=yyyy-MM-dd&time_zone=Asia/Seoul` | 없음 (쿼리, `time_zone` 생략 시 UTC) | `ListEventsResponse` |
 | `GetEvent` | `GET /api/events/{id}` | 없음 | `Event` |
 | `CreateEvent` | `POST /api/events` | `CreateEventRequest` | `201` + `Event` |
 | `DeleteEvent` | `DELETE /api/events/{id}` | 없음 | `204` |
 
+- 매핑 정보는 `.proto`의 `service` 위 주석에도 둔다 (생성 코드를 보는 사람도 알 수 있게). 주석에는 RPC, HTTP 메서드+경로, 성공 상태 코드+응답 메시지가 모두 들어가야 하며, 열은 합쳐서 줄여도 된다 (예: `RPC | HTTP | 성공` 3열).
+- 소유권이 있는 리소스는 소유자 ID를 요청 메시지로 받지 않는다. 서버가 access token에서 정하고, 남의 리소스는 `NOT_FOUND`로 숨긴다.
 - HTTP 바디는 `Content-Type: application/x-protobuf` (protobuf 바이너리).
 - 조회는 GET + 쿼리/경로 파라미터, 생성·수정은 POST/PATCH + proto 바디.
 

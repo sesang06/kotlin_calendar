@@ -27,19 +27,29 @@ Handler는 **전송 계층(HTTP/gRPC)과 도메인 사이의 번역기**다. 비
 ## 매퍼
 
 ```kotlin
+import com.google.protobuf.Timestamp
 import com.kotlincalendar.proto.calendar.v1.Event as EventMessage   // 도메인 Event와 이름 충돌 → alias
+
+fun Instant.toTimestamp(): Timestamp =
+    Timestamp.newBuilder()
+        .setSeconds(epochSeconds)
+        .setNanos(nanosecondsOfSecond)
+        .build()
+
+fun Timestamp.toInstant(): Instant =
+    Instant.fromEpochSeconds(seconds, nanos)
 
 fun Event.toProto(): EventMessage =
     EventMessage.newBuilder()
         .setId(id)
         .setTitle(title)
-        .setStartEpochMillis(start.toEpochMilliseconds())
-        .setEndEpochMillis(end.toEpochMilliseconds())
-        .setCreatedAtEpochMillis(createdAt.toEpochMilliseconds())
+        .setStartTime(start.toTimestamp())
+        .setEndTime(end.toTimestamp())
+        .setCreatedAt(createdAt.toTimestamp())
         .build()
 
 fun CreateEventRequest.toCommand() =
-    CreateEventCommand(title, Instant.fromEpochMilliseconds(startEpochMillis), Instant.fromEpochMilliseconds(endEpochMillis))
+    CreateEventCommand(title, startTime.toInstant(), endTime.toInstant())
 
 fun parseDate(raw: String): LocalDate =
     runCatching { LocalDate.parse(raw) }.getOrElse { throw ValidationException("invalid date '$raw' (expected yyyy-MM-dd)") }
