@@ -4,16 +4,16 @@ import com.kotlincalendar.server.common.error.DomainException
 import io.grpc.Status
 import io.grpc.StatusException
 
-suspend fun <T> grpcCall(block: suspend () -> T): T =
+inline fun <T> grpcCall(block: () -> T): T =
     try {
         block()
     } catch (e: DomainException) {
-        throw e.grpcStatus.asException()
+        throw e.toGrpcStatus().asException()
     } catch (e: StatusException) {
         throw e
-    } catch (e: Exception) {
+    } catch (e: Throwable) {
         throw Status.INTERNAL
-            .withDescription(e.message)
+            .withDescription(e.message ?: "internal server error")
             .withCause(e)
             .asException()
     }

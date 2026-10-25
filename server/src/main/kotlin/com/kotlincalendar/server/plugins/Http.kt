@@ -1,20 +1,15 @@
 package com.kotlincalendar.server.plugins
 
-import com.kotlincalendar.proto.calendar.v1.ErrorResponse
-import com.kotlincalendar.server.common.error.DomainException
-import com.kotlincalendar.server.common.http.respondProto
 import com.kotlincalendar.server.event.handler.http.EventHttpHandler
 import com.kotlincalendar.server.event.handler.http.eventRoutes
 import com.kotlincalendar.server.user.handler.http.AuthHttpHandler
 import com.kotlincalendar.server.user.handler.http.authRoutes
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.cors.routing.CORS
-import io.ktor.server.plugins.statuspages.StatusPages
 import io.ktor.server.routing.route
 import io.ktor.server.routing.routing
 import org.koin.ktor.ext.getKoin
@@ -48,22 +43,6 @@ fun Application.configureCors() {
                 val host = parts[0]
                 allowHost(host, listOf("http", "https"))
             }
-        }
-    }
-}
-
-fun Application.configureStatusPages() {
-    install(StatusPages) {
-        exception<DomainException> { call, cause ->
-            call.respondProto(cause.toErrorResponse(), cause.httpStatusCode)
-        }
-        exception<Throwable> { call, cause ->
-            val errorResponse =
-                ErrorResponse
-                    .newBuilder()
-                    .setMessage(cause.message ?: "Internal server error")
-                    .build()
-            call.respondProto(errorResponse, HttpStatusCode.InternalServerError)
         }
     }
 }

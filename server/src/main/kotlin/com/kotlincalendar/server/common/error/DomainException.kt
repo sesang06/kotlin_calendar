@@ -11,6 +11,10 @@ sealed class DomainException(
     abstract val httpStatusCode: HttpStatusCode
     abstract val grpcStatus: Status
 
+    open fun toHttpStatus(): HttpStatusCode = httpStatusCode
+
+    open fun toGrpcStatus(): Status = grpcStatus
+
     fun toErrorResponse(): ErrorResponse =
         ErrorResponse
             .newBuilder()

@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package calendar.v1;
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 option java_multiple_files = true;
@@ -77,8 +78,25 @@ message ErrorResponse {
 // | CreateEvent | POST   /api/events                                    | 201 Event              |
 // | DeleteEvent | DELETE /api/events/{id}                               | 204                    |
 service EventApi {
-  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
-  rpc GetEvent(GetEventRequest) returns (Event);
-  rpc CreateEvent(CreateEventRequest) returns (Event);
-  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse);
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse) {
+    option (google.api.http) = {
+      get: "/api/events"
+    };
+  }
+  rpc GetEvent(GetEventRequest) returns (Event) {
+    option (google.api.http) = {
+      get: "/api/events/{id}"
+    };
+  }
+  rpc CreateEvent(CreateEventRequest) returns (Event) {
+    option (google.api.http) = {
+      post: "/api/events"
+      body: "*"
+    };
+  }
+  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse) {
+    option (google.api.http) = {
+      delete: "/api/events/{id}"
+    };
+  }
 }

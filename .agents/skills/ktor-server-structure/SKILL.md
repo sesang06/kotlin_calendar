@@ -9,7 +9,7 @@ description: kotlin_calendar 서버(Ktor)의 전체 구조와 배선 규칙. Han
 
 ```
 HTTP  ─▶ HttpHandler ─┐
-                      ├─▶ Service ─▶ Repository ─▶ Database(Supabase/MySQL/H2)
+                      ├─▶ Service ─▶ Repository ─▶ Database(Supabase/H2)
 gRPC  ─▶ GrpcHandler ─┘
          (proto 변환)     (비즈니스)   (데이터 접근)
 ```
@@ -48,7 +48,7 @@ server/src/test/kotlin/com/kotlincalendar/server/<feature>/...   # 같은 패키
 - Ktor: `server-core`, `server-netty`, `server-config-yaml`, `server-status-pages`, `server-call-logging`, `server-cors`
 - 통신: `protobuf-java`, `grpc-netty-shaded`, `grpc-protobuf`, `grpc-stub`, `grpc-kotlin-stub` + `com.google.protobuf` 플러그인
 - DI: `koin-ktor`, `koin-logger-slf4j`
-- DB: Exposed(`core`, `jdbc`), HikariCP, PostgreSQL 드라이버(Supabase), MySQL 드라이버, H2
+- DB: Exposed(`core`, `jdbc`), HikariCP, PostgreSQL 드라이버(Supabase), H2
 - 시간: `kotlin.time.Instant/Clock` (opt-in `kotlin.time.ExperimentalTime`), 날짜 `kotlinx-datetime`
 - 테스트: JUnit5, MockK, `ktor-server-test-host`, `grpc-inprocess`, `kotlinx-coroutines-test`
 - JSON ContentNegotiation은 쓰지 않는다 (바디는 protobuf).

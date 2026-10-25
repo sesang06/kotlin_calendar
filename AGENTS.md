@@ -31,7 +31,7 @@ kotlin_calendar/
 | 서버 | Ktor. Handler → Service → Repository 단방향 |
 | 메시지 | 전부 `proto/`의 `.proto`로 정의. 서버는 protoc + grpc-kotlin, 클라이언트는 Wire로 생성 |
 | 통신 | gRPC(:50051) 또는 HTTP(:8080, `application/x-protobuf`). 같은 Service를 두 Handler가 노출. 웹은 HTTP 전용 |
-| DB | Supabase(PostgreSQL). `DatabaseProvider` 주입으로 MySQL·H2 교체 가능, Repository는 벤더 중립 Exposed |
+| DB | Supabase(PostgreSQL). `DatabaseProvider` 주입으로 H2 교체 가능, Repository는 Exposed |
 | DI | 서버·클라이언트 모두 Koin |
 | 시간 | `kotlin.time.Instant/Clock`, 날짜는 `kotlinx-datetime`. proto에서는 `google.protobuf.Timestamp` |
 | 테스트 | 서버 JUnit5 + MockK, 클라이언트 commonTest + Fake + Turbine |
@@ -45,7 +45,7 @@ kotlin_calendar/
 코드가 바뀌는 모든 작업은 이 순서를 따른다. `main`에 직접 커밋하지 않는다.
 
 1. **피처 분할** — 요청을 독립적으로 머지 가능한 피처로 나누고 목록을 사용자에게 보여준다 (`feature-worktree`).
-2. **worktree** — 피처마다 브랜치와 `../kotlin_calendar-worktrees/<브랜치>` worktree를 만들고 그 안에서만 작업한다. 독립 피처는 병렬, 의존 피처는 stacked.
+2. **worktree + 병렬 실행** — 피처마다 브랜치와 `../kotlin_calendar-worktrees/<브랜치>` worktree를 만들고, 독립 피처는 **피처마다 에이전트를 하나씩 동시에** 띄워 진행한다. 순차 처리하지 않는다 (병렬로 못 하는 이유가 있으면 사용자에게 그 이유를 말한다). 의존 피처는 선행 피처 첫 커밋 위에 stacked로 바로 시작한다.
 3. **PR** — ktlint·테스트 검증 후 피처마다 PR 하나를 연다 (`pull-request`, `.github/pull_request_template.md`).
 4. **리뷰** — PR을 만든 에이전트는 리뷰하지 않는다. 변경 경로에 따라 역할별(architecture / testing / contract / security-config) **별도 리뷰 에이전트**를 새 컨텍스트로 띄워 `pr-review` 스킬로 리뷰한다.
 5. **반영·머지** — Blocker/Major를 새 커밋으로 반영하고 해당 역할에 재리뷰를 요청한다. 머지는 사용자가 하거나 명시적으로 지시할 때만.
@@ -71,7 +71,7 @@ kotlin_calendar/
 | 서버 | `ktor-handler` | HTTP·gRPC Handler, proto↔도메인 매퍼, 상태 코드 |
 | 서버 | `ktor-service` | 비즈니스 로직·검증·트랜잭션 경계 |
 | 서버 | `ktor-repository` | 벤더 중립 Exposed 데이터 접근 |
-| 서버 | `server-database` | Supabase 연결, DatabaseProvider 주입, MySQL 교체, 환경변수 |
+| 서버 | `server-database` | Supabase 연결, DatabaseProvider 주입, 환경변수 |
 | 서버 | `ktor-mockk-testing` | MockK 단위 테스트, testApplication·InProcess gRPC·H2 테스트 |
 
 ## 공통 규칙
