@@ -19,6 +19,7 @@ class FakeAuthRepository(
     var refreshTokenResult: Result<AuthTokens> = Result.failure(NotImplementedError())
     var logoutResult: Result<Unit> = Result.success(Unit)
     var restoredUser: User? = null
+    var refreshCurrentUserResult: Result<User> = Result.failure(NotImplementedError())
 
     var lastSignUpEmail: String? = null
     var lastSignUpPassword: String? = null
@@ -67,4 +68,9 @@ class FakeAuthRepository(
         }
 
     override suspend fun restoreSession(): User? = restoredUser?.also { _authState.value = AuthState.Authenticated(it) }
+
+    override suspend fun refreshCurrentUser(): Result<User> =
+        refreshCurrentUserResult.also {
+            it.getOrNull()?.let { user -> _authState.value = AuthState.Authenticated(user) }
+        }
 }

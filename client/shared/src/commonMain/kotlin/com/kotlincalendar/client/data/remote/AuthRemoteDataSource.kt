@@ -8,6 +8,7 @@ import com.kotlincalendar.proto.auth.v1.RefreshTokenRequest
 import com.kotlincalendar.proto.auth.v1.RefreshTokenResponse
 import com.kotlincalendar.proto.auth.v1.SignUpRequest
 import com.kotlincalendar.proto.auth.v1.SignUpResponse
+import com.kotlincalendar.proto.auth.v1.User as ProtoUser
 
 interface AuthRemoteDataSource {
     suspend fun signUp(request: SignUpRequest): SignUpResponse
@@ -20,4 +21,6 @@ interface AuthRemoteDataSource {
         request: LogoutRequest,
         accessToken: String,
     ): LogoutResponse
+
+    suspend fun getMe(accessToken: String): ProtoUser
 }

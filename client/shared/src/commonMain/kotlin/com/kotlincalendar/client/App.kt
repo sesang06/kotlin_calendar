@@ -24,6 +24,7 @@ import com.kotlincalendar.client.presentation.auth.signup.SignUpRoute
 import com.kotlincalendar.client.presentation.calendar.CalendarRoute
 import com.kotlincalendar.client.presentation.event.create.EventCreateRoute
 import com.kotlincalendar.client.presentation.event.detail.EventDetailRoute
+import com.kotlincalendar.client.presentation.profile.ProfileRoute
 import com.kotlincalendar.client.presentation.theme.CalendarTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
@@ -44,6 +45,9 @@ data object CalendarDestination
 data class EventCreateDestination(
     val date: String,
 )
+
+@Serializable
+data object ProfileDestination
 
 @Serializable
 data class EventEditDestination(
@@ -120,7 +124,7 @@ fun App(appViewModel: AppViewModel = koinViewModel()) {
                     CalendarRoute(
                         onCreateEvent = { date -> navController.navigate(EventCreateDestination(date.toString())) },
                         onEventClick = { id -> navController.navigate(EventDetailDestination(id)) },
-                        onLogout = appViewModel::logout,
+                        onOpenProfile = { navController.navigate(ProfileDestination) },
                         refreshKey = calendarRefreshKey,
                     )
                 }
@@ -148,6 +152,10 @@ fun App(appViewModel: AppViewModel = koinViewModel()) {
                         },
                         onEdit = { id -> navController.navigate(EventEditDestination(id)) },
                     )
+                }
+
+                composable<ProfileDestination> {
+                    ProfileRoute(onBack = { navController.popBackStack() })
                 }
 
                 composable<EventEditDestination> { entry ->

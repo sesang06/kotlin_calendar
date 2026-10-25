@@ -58,14 +58,14 @@ private val WeekdayLabels = listOf("일", "월", "화", "수", "목", "금", "�
  *
  * @param onCreateEvent 추가 버튼을 누르면 선택된 날짜와 함께 호출된다.
  * @param onEventClick 일정 행을 누르면 일정 id와 함께 호출된다.
- * @param onLogout 로그아웃 버튼을 누르면 호출된다.
+ * @param onOpenProfile 내 정보 버튼을 누르면 호출된다.
  * @param refreshKey 값이 바뀔 때마다(null 제외) 선택된 날짜의 일정을 다시 불러온다. 일정 생성·삭제 후 갱신용.
  */
 @Composable
 fun CalendarRoute(
     onCreateEvent: (LocalDate) -> Unit,
     onEventClick: (String) -> Unit,
-    onLogout: () -> Unit,
+    onOpenProfile: () -> Unit,
     refreshKey: Any? = null,
     viewModel: CalendarViewModel = koinViewModel(),
 ) {
@@ -87,7 +87,7 @@ fun CalendarRoute(
     CalendarScreen(
         state = state,
         onAction = viewModel::onAction,
-        onLogout = onLogout,
+        onOpenProfile = onOpenProfile,
     )
 }
 
@@ -95,7 +95,7 @@ fun CalendarRoute(
 fun CalendarScreen(
     state: CalendarUiState,
     onAction: (CalendarAction) -> Unit,
-    onLogout: () -> Unit = {},
+    onOpenProfile: () -> Unit = {},
 ) {
     Scaffold(
         floatingActionButton = {
@@ -114,7 +114,7 @@ fun CalendarScreen(
         ) {
             val isWide = maxWidth >= WideLayoutMinWidth
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
-                AppHeader(onLogout = onLogout)
+                AppHeader(onOpenProfile = onOpenProfile)
                 Spacer(modifier = Modifier.height(8.dp))
                 ViewModeSelector(selected = state.viewMode, onSelect = { onAction(CalendarAction.ChangeViewMode(it)) })
                 Spacer(modifier = Modifier.height(12.dp))
@@ -155,7 +155,7 @@ fun CalendarScreen(
 }
 
 @Composable
-private fun AppHeader(onLogout: () -> Unit) {
+private fun AppHeader(onOpenProfile: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically,
@@ -167,8 +167,8 @@ private fun AppHeader(onLogout: () -> Unit) {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = onLogout) {
-            Text("로그아웃")
+        TextButton(onClick = onOpenProfile) {
+            Text("내 정보")
         }
     }
 }
