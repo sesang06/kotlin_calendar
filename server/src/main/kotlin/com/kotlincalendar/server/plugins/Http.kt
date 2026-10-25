@@ -49,7 +49,6 @@ fun Application.configureCors() {
                 allowHost(host, listOf("http", "https"))
             }
         }
-        anyHost()
     }
 }
 

@@ -68,6 +68,16 @@ class EventServiceTest {
         }
 
     @Test
+    fun `소유자 ID가 공백이면 ValidationException이고 저장하지 않는다`() =
+        runTest {
+            assertFailsWith<ValidationException> {
+                service.createEvent(command.copy(ownerUserId = "  "))
+            }
+
+            coVerify(exactly = 0) { repo.save(any()) }
+        }
+
+    @Test
     fun `제목이 공백이면 ValidationException이고 저장하지 않는다`() =
         runTest {
             assertFailsWith<ValidationException> {
@@ -108,59 +118,59 @@ class EventServiceTest {
         }
 
     @Test
-    fun `특정 날짜의 일정을 조회하면 해당 날짜 구간과 겹치는 일정을 반환한다`() =
+    fun `특정 사용자의 특정 날짜 일정을 조회하면 해당 날짜 구간과 겹치는 일정을 반환한다`() =
         runTest {
-            coEvery { repo.findOverlapping(any(), any()) } returns listOf(event)
+            coEvery { repo.findOverlapping("user-1", any(), any()) } returns listOf(event)
 
-            val result = service.getEventsOn(LocalDate.parse("2026-10-26"), TimeZone.of("Asia/Seoul"))
+            val result = service.getEventsOn("user-1", LocalDate.parse("2026-10-26"), TimeZone.of("Asia/Seoul"))
 
             assertEquals(1, result.size)
             assertEquals("id-1", result[0].id)
-            coVerify(exactly = 1) { repo.findOverlapping(any(), any()) }
+            coVerify(exactly = 1) { repo.findOverlapping("user-1", any(), any()) }
         }
 
     @Test
     fun `존재하는 ID로 조회하면 일정을 반환한다`() =
         runTest {
-            coEvery { repo.findById("id-1") } returns event
+            coEvery { repo.findByIdAndOwnerUserId("id-1", "user-1") } returns event
 
-            val result = service.getEvent("id-1")
+            val result = service.getEvent("user-1", "id-1")
 
             assertEquals("id-1", result.id)
-            coVerify(exactly = 1) { repo.findById("id-1") }
+            coVerify(exactly = 1) { repo.findByIdAndOwnerUserId("id-1", "user-1") }
         }
 
     @Test
-    fun `존재하지 않는 ID로 조회하면 NotFoundException을 던진다`() =
+    fun `존재하지 않거나 타 사용자의 ID로 조회하면 NotFoundException을 던진다`() =
         runTest {
-            coEvery { repo.findById("x") } returns null
+            coEvery { repo.findByIdAndOwnerUserId("x", "user-1") } returns null
 
             assertFailsWith<NotFoundException> {
-                service.getEvent("x")
+                service.getEvent("user-1", "x")
             }
 
-            coVerify(exactly = 1) { repo.findById("x") }
+            coVerify(exactly = 1) { repo.findByIdAndOwnerUserId("x", "user-1") }
         }
 
     @Test
     fun `존재하는 ID를 삭제하면 성공한다`() =
         runTest {
-            coEvery { repo.deleteById("id-1") } returns true
+            coEvery { repo.deleteByIdAndOwnerUserId("id-1", "user-1") } returns true
 
-            service.deleteEvent("id-1")
+            service.deleteEvent("user-1", "id-1")
 
-            coVerify(exactly = 1) { repo.deleteById("id-1") }
+            coVerify(exactly = 1) { repo.deleteByIdAndOwnerUserId("id-1", "user-1") }
         }
 
     @Test
-    fun `존재하지 않는 ID를 삭제하면 NotFoundException을 던진다`() =
+    fun `존재하지 않거나 타 사용자의 ID를 삭제하면 NotFoundException을 던진다`() =
         runTest {
-            coEvery { repo.deleteById("x") } returns false
+            coEvery { repo.deleteByIdAndOwnerUserId("x", "user-1") } returns false
 
             assertFailsWith<NotFoundException> {
-                service.deleteEvent("x")
+                service.deleteEvent("user-1", "x")
             }
 
-            coVerify(exactly = 1) { repo.deleteById("x") }
+            coVerify(exactly = 1) { repo.deleteByIdAndOwnerUserId("x", "user-1") }
         }
 }

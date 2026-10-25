@@ -19,17 +19,26 @@ class EventService(
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
 ) {
     suspend fun getEventsOn(
+        userId: String,
         date: LocalDate,
         timeZone: TimeZone = TimeZone.UTC,
     ): List<Event> {
         val dayStart = date.atStartOfDayIn(timeZone)
         val dayEnd = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(timeZone)
-        return eventRepository.findOverlapping(dayStart, dayEnd)
+        return eventRepository.findOverlapping(userId, dayStart, dayEnd)
     }
 
-    suspend fun getEvent(id: String): Event = eventRepository.findById(id) ?: throw NotFoundException("event $id not found")
+    suspend fun getEvent(
+        userId: String,
+        id: String,
+    ): Event =
+        eventRepository.findByIdAndOwnerUserId(id, userId)
+            ?: throw NotFoundException("event $id not found")
 
     suspend fun createEvent(command: CreateEventCommand): Event {
+        if (command.ownerUserId.isBlank()) {
+            throw ValidationException("ownerUserId must not be blank")
+        }
         if (command.title.isBlank()) {
             throw ValidationException("title must not be blank")
         }
@@ -58,8 +67,11 @@ class EventService(
         return eventRepository.save(event)
     }
 
-    suspend fun deleteEvent(id: String) {
-        if (!eventRepository.deleteById(id)) {
+    suspend fun deleteEvent(
+        userId: String,
+        id: String,
+    ) {
+        if (!eventRepository.deleteByIdAndOwnerUserId(id, userId)) {
             throw NotFoundException("event $id not found")
         }
     }

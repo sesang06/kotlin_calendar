@@ -18,7 +18,7 @@ object EventTable : Table("events") {
     override val primaryKey = PrimaryKey(id)
 
     init {
-        index(isUnique = false, startAt, endAt)
+        index(isUnique = false, ownerUserId, startAt, endAt)
     }
 }
 

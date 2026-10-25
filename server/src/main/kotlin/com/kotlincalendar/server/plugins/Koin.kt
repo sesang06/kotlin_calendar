@@ -40,7 +40,7 @@ val eventModule =
     module {
         singleOf(::ExposedEventRepository) bind EventRepository::class
         single { EventService(get()) }
-        singleOf(::EventHttpHandler)
+        single { EventHttpHandler(get(), get()) }
         singleOf(::EventGrpcHandler)
     }
 

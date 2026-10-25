@@ -8,8 +8,16 @@ import com.kotlincalendar.proto.calendar.v1.GetEventRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.server.common.error.NotFoundException
 import com.kotlincalendar.server.common.error.ValidationException
+import com.kotlincalendar.server.common.grpc.AUTH_USER_ID_KEY
 import com.kotlincalendar.server.event.domain.Event
 import com.kotlincalendar.server.event.service.EventService
+import io.grpc.Context
+import io.grpc.Contexts
+import io.grpc.Metadata
+import io.grpc.ServerCall
+import io.grpc.ServerCallHandler
+import io.grpc.ServerInterceptor
+import io.grpc.ServerInterceptors
 import io.grpc.Status
 import io.grpc.StatusException
 import io.grpc.inprocess.InProcessChannelBuilder
@@ -18,7 +26,8 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.test.runTest
-import kotlin.test.AfterTest
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
@@ -26,16 +35,30 @@ import kotlin.time.Instant
 
 class EventGrpcHandlerTest {
     private val service = mockk<EventService>()
-    private val serverName = InProcessServerBuilder.generateName()
-    private val server =
-        InProcessServerBuilder
-            .forName(serverName)
-            .directExecutor()
-            .addService(EventGrpcHandler(service))
-            .build()
-            .start()
-    private val channel = InProcessChannelBuilder.forName(serverName).directExecutor().build()
-    private val stub = EventApiGrpcKt.EventApiCoroutineStub(channel)
+
+    private lateinit var serverName: String
+    private lateinit var server: io.grpc.Server
+    private lateinit var channel: io.grpc.ManagedChannel
+    private lateinit var stub: EventApiGrpcKt.EventApiCoroutineStub
+
+    private var testUserId: String? = "user-1"
+
+    private val authTestInterceptor =
+        object : ServerInterceptor {
+            override fun <ReqT, RespT> interceptCall(
+                call: ServerCall<ReqT, RespT>,
+                headers: Metadata,
+                next: ServerCallHandler<ReqT, RespT>,
+            ): ServerCall.Listener<ReqT> {
+                val context =
+                    if (testUserId != null) {
+                        Context.current().withValue(AUTH_USER_ID_KEY, testUserId)
+                    } else {
+                        Context.current()
+                    }
+                return Contexts.interceptCall(context, call, headers, next)
+            }
+        }
 
     private val sampleEvent =
         Event(
@@ -48,16 +71,51 @@ class EventGrpcHandlerTest {
             ownerUserId = "user-1",
         )
 
-    @AfterTest
+    @BeforeEach
+    fun setUp() {
+        testUserId = "user-1"
+        serverName = InProcessServerBuilder.generateName()
+        server =
+            InProcessServerBuilder
+                .forName(serverName)
+                .directExecutor()
+                .addService(ServerInterceptors.intercept(EventGrpcHandler(service), authTestInterceptor))
+                .build()
+                .start()
+        channel = InProcessChannelBuilder.forName(serverName).directExecutor().build()
+        stub = EventApiGrpcKt.EventApiCoroutineStub(channel)
+    }
+
+    @AfterEach
     fun tearDown() {
         channel.shutdownNow()
         server.shutdownNow()
     }
 
     @Test
+    fun `인증되지 않은 요청은 UNAUTHENTICATED를 반환한다`() =
+        runTest {
+            testUserId = null
+
+            val request =
+                ListEventsRequest
+                    .newBuilder()
+                    .setDate("2026-10-26")
+                    .build()
+
+            val e =
+                assertFailsWith<StatusException> {
+                    stub.listEvents(request)
+                }
+
+            assertEquals(Status.Code.UNAUTHENTICATED, e.status.code)
+            coVerify(exactly = 0) { service.getEventsOn(any(), any(), any()) }
+        }
+
+    @Test
     fun `listEvents는 요청 날짜의 일정 목록을 반환한다`() =
         runTest {
-            coEvery { service.getEventsOn(any(), any()) } returns listOf(sampleEvent)
+            coEvery { service.getEventsOn("user-1", any(), any()) } returns listOf(sampleEvent)
 
             val request =
                 ListEventsRequest
@@ -86,7 +144,7 @@ class EventGrpcHandlerTest {
                 }
 
             assertEquals(Status.Code.INVALID_ARGUMENT, e.status.code)
-            coVerify(exactly = 0) { service.getEventsOn(any(), any()) }
+            coVerify(exactly = 0) { service.getEventsOn(any(), any(), any()) }
         }
 
     @Test
@@ -105,13 +163,13 @@ class EventGrpcHandlerTest {
                 }
 
             assertEquals(Status.Code.INVALID_ARGUMENT, e.status.code)
-            coVerify(exactly = 0) { service.getEventsOn(any(), any()) }
+            coVerify(exactly = 0) { service.getEventsOn(any(), any(), any()) }
         }
 
     @Test
     fun `getEvent는 존재하는 일정을 반환한다`() =
         runTest {
-            coEvery { service.getEvent("id-1") } returns sampleEvent
+            coEvery { service.getEvent("user-1", "id-1") } returns sampleEvent
 
             val response = stub.getEvent(GetEventRequest.newBuilder().setId("id-1").build())
 
@@ -122,7 +180,7 @@ class EventGrpcHandlerTest {
     @Test
     fun `getEvent에 없는 ID가 전달되면 NOT_FOUND`() =
         runTest {
-            coEvery { service.getEvent("x") } throws NotFoundException("event x not found")
+            coEvery { service.getEvent("user-1", "x") } throws NotFoundException("event x not found")
 
             val e =
                 assertFailsWith<StatusException> {
@@ -175,7 +233,7 @@ class EventGrpcHandlerTest {
     @Test
     fun `deleteEvent는 일정을 삭제하고 빈 응답을 반환한다`() =
         runTest {
-            coEvery { service.deleteEvent("id-1") } returns Unit
+            coEvery { service.deleteEvent("user-1", "id-1") } returns Unit
 
             val response = stub.deleteEvent(DeleteEventRequest.newBuilder().setId("id-1").build())
 
@@ -184,13 +242,13 @@ class EventGrpcHandlerTest {
                     .getDefaultInstance(),
                 response,
             )
-            coVerify(exactly = 1) { service.deleteEvent("id-1") }
+            coVerify(exactly = 1) { service.deleteEvent("user-1", "id-1") }
         }
 
     @Test
     fun `deleteEvent에 없는 ID가 전달되면 NOT_FOUND`() =
         runTest {
-            coEvery { service.deleteEvent("x") } throws NotFoundException("event x not found")
+            coEvery { service.deleteEvent("user-1", "x") } throws NotFoundException("event x not found")
 
             val e =
                 assertFailsWith<StatusException> {

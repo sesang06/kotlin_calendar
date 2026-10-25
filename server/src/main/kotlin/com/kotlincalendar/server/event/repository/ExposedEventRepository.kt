@@ -33,13 +33,29 @@ class ExposedEventRepository(
                 ?.toEvent()
         }
 
-    override suspend fun findByDate(date: LocalDate): List<Event> {
+    override suspend fun findByIdAndOwnerUserId(
+        id: String,
+        ownerUserId: String,
+    ): Event? =
+        dbQuery {
+            EventTable
+                .selectAll()
+                .where { (EventTable.id eq id) and (EventTable.ownerUserId eq ownerUserId) }
+                .singleOrNull()
+                ?.toEvent()
+        }
+
+    override suspend fun findByDate(
+        ownerUserId: String,
+        date: LocalDate,
+    ): List<Event> {
         val dayStart = date.atStartOfDayIn(TimeZone.UTC)
         val dayEnd = date.plus(1, DateTimeUnit.DAY).atStartOfDayIn(TimeZone.UTC)
-        return findOverlapping(dayStart, dayEnd)
+        return findOverlapping(ownerUserId, dayStart, dayEnd)
     }
 
     override suspend fun findOverlapping(
+        ownerUserId: String,
         start: Instant,
         end: Instant,
     ): List<Event> =
@@ -48,12 +64,16 @@ class ExposedEventRepository(
             val endMillis = end.toEpochMilliseconds()
             EventTable
                 .selectAll()
-                .where { (EventTable.startAt less endMillis) and (EventTable.endAt greater startMillis) }
-                .orderBy(EventTable.startAt to SortOrder.ASC)
+                .where {
+                    (EventTable.ownerUserId eq ownerUserId) and
+                        (EventTable.startAt less endMillis) and
+                        (EventTable.endAt greater startMillis)
+                }.orderBy(EventTable.startAt to SortOrder.ASC)
                 .map { it.toEvent() }
         }
 
     override suspend fun existsOverlapping(
+        ownerUserId: String,
         start: Instant,
         end: Instant,
     ): Boolean =
@@ -62,8 +82,11 @@ class ExposedEventRepository(
             val endMillis = end.toEpochMilliseconds()
             EventTable
                 .selectAll()
-                .where { (EventTable.startAt less endMillis) and (EventTable.endAt greater startMillis) }
-                .limit(1)
+                .where {
+                    (EventTable.ownerUserId eq ownerUserId) and
+                        (EventTable.startAt less endMillis) and
+                        (EventTable.endAt greater startMillis)
+                }.limit(1)
                 .any()
         }
 
@@ -96,5 +119,13 @@ class ExposedEventRepository(
     override suspend fun deleteById(id: String): Boolean =
         dbQuery {
             EventTable.deleteWhere { EventTable.id eq id } > 0
+        }
+
+    override suspend fun deleteByIdAndOwnerUserId(
+        id: String,
+        ownerUserId: String,
+    ): Boolean =
+        dbQuery {
+            EventTable.deleteWhere { (EventTable.id eq id) and (EventTable.ownerUserId eq ownerUserId) } > 0
         }
 }
