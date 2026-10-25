@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+package calendar.v1;
+
+option java_multiple_files = true;
+option java_package = "com.kotlincalendar.proto.calendar.v1";
+
+// 캘린더 일정. 시각은 UTC epoch millis.
+message Event {
+  string id = 1;
+  string title = 2;
+  int64 start_epoch_millis = 3;
+  int64 end_epoch_millis = 4;
+  int64 created_at_epoch_millis = 5;
+}
+
+message ListEventsRequest {
+  // ISO-8601 날짜 (yyyy-MM-dd), UTC 기준 하루.
+  string date = 1;
+}
+
+message ListEventsResponse {
+  repeated Event events = 1;
+}
+
+message GetEventRequest {
+  string id = 1;
+}
+
+message CreateEventRequest {
+  string title = 1;
+  int64 start_epoch_millis = 2;
+  int64 end_epoch_millis = 3;
+}
+
+message DeleteEventRequest {
+  string id = 1;
+}
+
+message DeleteEventResponse {}
+
+// HTTP 전송에서 4xx/5xx 응답 바디. gRPC는 Status를 사용한다.
+message ErrorResponse {
+  string message = 1;
+}
+
+// gRPC: EventApi/*, HTTP: /api/events (proto-contract 스킬의 매핑 표 참고)
+service EventApi {
+  rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
+  rpc GetEvent(GetEventRequest) returns (Event);
+  rpc CreateEvent(CreateEventRequest) returns (Event);
+  rpc DeleteEvent(DeleteEventRequest) returns (DeleteEventResponse);
+}

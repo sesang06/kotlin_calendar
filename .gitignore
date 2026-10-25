@@ -1,0 +1,28 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+.fleet/
+.vscode/
+
+# Local config
+local.properties
+*.env
+.env*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# iOS
+client/iosApp/**/xcuserdata/
+client/iosApp/Pods/
+*.xcworkspace/xcuserdata/
+
+# Claude local settings
+.claude/settings.local.json
