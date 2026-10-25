@@ -1,12 +1,16 @@
 package com.kotlincalendar.server.user.repository
 
+import com.kotlincalendar.server.common.database.epochMillisToUtcOffsetDateTime
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
+import org.jetbrains.exposed.sql.SqlExpressionBuilder.isNull
+import org.jetbrains.exposed.sql.and
 import org.jetbrains.exposed.sql.insert
 import org.jetbrains.exposed.sql.selectAll
 import org.jetbrains.exposed.sql.transactions.experimental.newSuspendedTransaction
 import org.jetbrains.exposed.sql.update
+import java.security.MessageDigest
 
 class ExposedRefreshTokenRepository(
     private val database: Database,
@@ -17,34 +21,51 @@ class ExposedRefreshTokenRepository(
         dbQuery {
             RefreshTokenTable
                 .selectAll()
-                .where { RefreshTokenTable.token eq token }
+                .where { RefreshTokenTable.tokenHash eq sha256Hex(token) }
                 .singleOrNull()
-                ?.toRefreshTokenRecord()
+                ?.toRefreshTokenRecord(token)
         }
 
     override suspend fun save(record: RefreshTokenRecord): RefreshTokenRecord =
         dbQuery {
             RefreshTokenTable.insert {
-                it[token] = record.token
+                it[id] = record.id
                 it[userId] = record.userId
-                it[expiresAt] = record.expiresAt
-                it[createdAt] = record.createdAt
-                it[revoked] = record.revoked
+                it[tokenHash] = sha256Hex(record.token)
+                it[expiresAt] = record.expiresAt.epochMillisToUtcOffsetDateTime()
+                it[createdAt] = record.createdAt.epochMillisToUtcOffsetDateTime()
+                it[revokedAt] = record.revokedAt?.epochMillisToUtcOffsetDateTime()
             }
             record
         }
 
-    override suspend fun revoke(token: String): Boolean =
+    override suspend fun revoke(
+        token: String,
+        revokedAt: Long,
+    ): Boolean =
         dbQuery {
-            RefreshTokenTable.update({ RefreshTokenTable.token eq token }) {
-                it[revoked] = true
+            RefreshTokenTable.update({
+                (RefreshTokenTable.tokenHash eq sha256Hex(token)) and RefreshTokenTable.revokedAt.isNull()
+            }) {
+                it[RefreshTokenTable.revokedAt] = revokedAt.epochMillisToUtcOffsetDateTime()
             } > 0
         }
 
-    override suspend fun revokeAllByUserId(userId: String): Int =
+    override suspend fun revokeAllByUserId(
+        userId: String,
+        revokedAt: Long,
+    ): Int =
         dbQuery {
-            RefreshTokenTable.update({ RefreshTokenTable.userId eq userId }) {
-                it[revoked] = true
+            RefreshTokenTable.update({
+                (RefreshTokenTable.userId eq userId) and RefreshTokenTable.revokedAt.isNull()
+            }) {
+                it[RefreshTokenTable.revokedAt] = revokedAt.epochMillisToUtcOffsetDateTime()
             }
         }
+
+    private fun sha256Hex(token: String): String =
+        MessageDigest
+            .getInstance("SHA-256")
+            .digest(token.toByteArray(Charsets.UTF_8))
+            .joinToString("") { "%02x".format(it) }
 }

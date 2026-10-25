@@ -57,11 +57,11 @@ class UserService(
 
         refreshTokenRepository.save(
             RefreshTokenRecord(
+                id = idGenerator(),
                 token = refreshToken.token,
                 userId = userId,
                 expiresAt = refreshToken.expiresAt.toEpochMilliseconds(),
                 createdAt = now.toEpochMilliseconds(),
-                revoked = false,
             ),
         )
 
@@ -96,11 +96,11 @@ class UserService(
 
         refreshTokenRepository.save(
             RefreshTokenRecord(
+                id = idGenerator(),
                 token = refreshToken.token,
                 userId = userRecord.id,
                 expiresAt = refreshToken.expiresAt.toEpochMilliseconds(),
                 createdAt = now.toEpochMilliseconds(),
-                revoked = false,
             ),
         )
 
@@ -129,7 +129,7 @@ class UserService(
             throw UnauthenticatedException("invalid or expired refresh token")
         }
 
-        refreshTokenRepository.revoke(command.refreshToken)
+        refreshTokenRepository.revoke(command.refreshToken, now.toEpochMilliseconds())
 
         val userRecord =
             userRepository.findById(tokenRecord.userId)
@@ -140,11 +140,11 @@ class UserService(
 
         refreshTokenRepository.save(
             RefreshTokenRecord(
+                id = idGenerator(),
                 token = newRefreshToken.token,
                 userId = userRecord.id,
                 expiresAt = newRefreshToken.expiresAt.toEpochMilliseconds(),
                 createdAt = now.toEpochMilliseconds(),
-                revoked = false,
             ),
         )
 
@@ -162,7 +162,7 @@ class UserService(
         }
         val tokenRecord = refreshTokenRepository.findByToken(command.refreshToken)
         if (tokenRecord != null && tokenRecord.userId == command.userId) {
-            refreshTokenRepository.revoke(command.refreshToken)
+            refreshTokenRepository.revoke(command.refreshToken, clock.now().toEpochMilliseconds())
         }
     }
 

@@ -1,5 +1,6 @@
 package com.kotlincalendar.server.event.repository
 
+import com.kotlincalendar.server.common.database.toUtcOffsetDateTime
 import com.kotlincalendar.server.event.domain.Event
 import kotlinx.coroutines.Dispatchers
 import kotlinx.datetime.DateTimeUnit
@@ -60,14 +61,12 @@ class ExposedEventRepository(
         end: Instant,
     ): List<Event> =
         dbQuery {
-            val startMillis = start.toEpochMilliseconds()
-            val endMillis = end.toEpochMilliseconds()
             EventTable
                 .selectAll()
                 .where {
                     (EventTable.ownerUserId eq ownerUserId) and
-                        (EventTable.startAt less endMillis) and
-                        (EventTable.endAt greater startMillis)
+                        (EventTable.startAt less end.toUtcOffsetDateTime()) and
+                        (EventTable.endAt greater start.toUtcOffsetDateTime())
                 }.orderBy(EventTable.startAt to SortOrder.ASC)
                 .map { it.toEvent() }
         }
@@ -78,14 +77,12 @@ class ExposedEventRepository(
         end: Instant,
     ): Boolean =
         dbQuery {
-            val startMillis = start.toEpochMilliseconds()
-            val endMillis = end.toEpochMilliseconds()
             EventTable
                 .selectAll()
                 .where {
                     (EventTable.ownerUserId eq ownerUserId) and
-                        (EventTable.startAt less endMillis) and
-                        (EventTable.endAt greater startMillis)
+                        (EventTable.startAt less end.toUtcOffsetDateTime()) and
+                        (EventTable.endAt greater start.toUtcOffsetDateTime())
                 }.limit(1)
                 .any()
         }
@@ -96,9 +93,9 @@ class ExposedEventRepository(
             if (exists) {
                 EventTable.update({ EventTable.id eq event.id }) {
                     it[title] = event.title
-                    it[startAt] = event.start.toEpochMilliseconds()
-                    it[endAt] = event.end.toEpochMilliseconds()
-                    it[createdAt] = event.createdAt.toEpochMilliseconds()
+                    it[startAt] = event.start.toUtcOffsetDateTime()
+                    it[endAt] = event.end.toUtcOffsetDateTime()
+                    it[createdAt] = event.createdAt.toUtcOffsetDateTime()
                     it[description] = event.description
                     it[ownerUserId] = event.ownerUserId
                 }
@@ -106,9 +103,9 @@ class ExposedEventRepository(
                 EventTable.insert {
                     it[id] = event.id
                     it[title] = event.title
-                    it[startAt] = event.start.toEpochMilliseconds()
-                    it[endAt] = event.end.toEpochMilliseconds()
-                    it[createdAt] = event.createdAt.toEpochMilliseconds()
+                    it[startAt] = event.start.toUtcOffsetDateTime()
+                    it[endAt] = event.end.toUtcOffsetDateTime()
+                    it[createdAt] = event.createdAt.toUtcOffsetDateTime()
                     it[description] = event.description
                     it[ownerUserId] = event.ownerUserId
                 }
