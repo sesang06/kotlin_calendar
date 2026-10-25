@@ -213,11 +213,11 @@ class UserServiceTest {
             val command = RefreshTokenCommand(refreshToken = "old-refresh-token")
             val tokenRecord =
                 RefreshTokenRecord(
+                    id = "token-id",
                     token = "old-refresh-token",
                     userId = "user-123",
                     expiresAt = fixedNow.toEpochMilliseconds() + 100_000,
                     createdAt = fixedNow.toEpochMilliseconds() - 100_000,
-                    revoked = false,
                 )
             val userRecord =
                 UserRecord(
@@ -229,7 +229,7 @@ class UserServiceTest {
                 )
 
             coEvery { refreshTokenRepository.findByToken("old-refresh-token") } returns tokenRecord
-            coEvery { refreshTokenRepository.revoke("old-refresh-token") } returns true
+            coEvery { refreshTokenRepository.revoke("old-refresh-token", fixedNow.toEpochMilliseconds()) } returns true
             coEvery { userRepository.findById("user-123") } returns userRecord
 
             every { tokenProvider.generateAccessToken("user-123", fixedNow) } returns
@@ -244,7 +244,7 @@ class UserServiceTest {
 
             assertEquals("new-access-token", result.accessToken)
             assertEquals("new-refresh-token", result.refreshToken)
-            coVerify(exactly = 1) { refreshTokenRepository.revoke("old-refresh-token") }
+            coVerify(exactly = 1) { refreshTokenRepository.revoke("old-refresh-token", fixedNow.toEpochMilliseconds()) }
         }
 
     @Test
@@ -253,11 +253,11 @@ class UserServiceTest {
             val command = RefreshTokenCommand(refreshToken = "expired-token")
             val tokenRecord =
                 RefreshTokenRecord(
+                    id = "token-id",
                     token = "expired-token",
                     userId = "user-123",
                     expiresAt = fixedNow.toEpochMilliseconds() - 1,
                     createdAt = fixedNow.toEpochMilliseconds() - 100_000,
-                    revoked = false,
                 )
 
             coEvery { refreshTokenRepository.findByToken("expired-token") } returns tokenRecord
@@ -266,7 +266,7 @@ class UserServiceTest {
                 service.refreshToken(command)
             }
 
-            coVerify(exactly = 0) { refreshTokenRepository.revoke(any()) }
+            coVerify(exactly = 0) { refreshTokenRepository.revoke(any(), any()) }
         }
 
     @Test
@@ -275,19 +275,19 @@ class UserServiceTest {
             val command = LogoutCommand(refreshToken = "my-refresh-token", userId = "user-123")
             val tokenRecord =
                 RefreshTokenRecord(
+                    id = "token-id",
                     token = "my-refresh-token",
                     userId = "user-123",
                     expiresAt = fixedNow.toEpochMilliseconds() + 100_000,
                     createdAt = fixedNow.toEpochMilliseconds(),
-                    revoked = false,
                 )
 
             coEvery { refreshTokenRepository.findByToken("my-refresh-token") } returns tokenRecord
-            coEvery { refreshTokenRepository.revoke("my-refresh-token") } returns true
+            coEvery { refreshTokenRepository.revoke("my-refresh-token", fixedNow.toEpochMilliseconds()) } returns true
 
             service.logout(command)
 
-            coVerify(exactly = 1) { refreshTokenRepository.revoke("my-refresh-token") }
+            coVerify(exactly = 1) { refreshTokenRepository.revoke("my-refresh-token", fixedNow.toEpochMilliseconds()) }
         }
 
     @Test
@@ -296,18 +296,18 @@ class UserServiceTest {
             val command = LogoutCommand(refreshToken = "other-refresh-token", userId = "user-123")
             val tokenRecord =
                 RefreshTokenRecord(
+                    id = "token-id",
                     token = "other-refresh-token",
                     userId = "other-user",
                     expiresAt = fixedNow.toEpochMilliseconds() + 100_000,
                     createdAt = fixedNow.toEpochMilliseconds(),
-                    revoked = false,
                 )
 
             coEvery { refreshTokenRepository.findByToken("other-refresh-token") } returns tokenRecord
 
             service.logout(command)
 
-            coVerify(exactly = 0) { refreshTokenRepository.revoke(any()) }
+            coVerify(exactly = 0) { refreshTokenRepository.revoke(any(), any()) }
         }
 
     @Test

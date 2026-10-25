@@ -1,10 +1,7 @@
 package com.kotlincalendar.server.user.repository
 
-import com.kotlincalendar.server.common.database.H2DatabaseProvider
+import com.kotlincalendar.server.common.database.migratedH2Database
 import kotlinx.coroutines.test.runTest
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.transaction
-import java.util.UUID
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -13,12 +10,7 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 class ExposedUserRepositoryTest {
-    private val provider = H2DatabaseProvider("jdbc:h2:mem:${UUID.randomUUID()};DB_CLOSE_DELAY=-1")
-    private val database =
-        provider.connect().also { db ->
-            transaction(db) { SchemaUtils.create(UserTable) }
-        }
-    private val repository = ExposedUserRepository(database)
+    private val repository = ExposedUserRepository(migratedH2Database())
 
     @Test
     fun `사용자를 저장하고 ID 및 이메일로 조회할 수 있다`() =

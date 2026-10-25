@@ -19,13 +19,13 @@ class DatabaseMigratorTest {
     private fun migrated(): DataSource = h2().also { DatabaseMigrator(it, DatabaseVendor.POSTGRESQL).migrate() }
 
     @Test
-    fun `마이그레이션은 users와 refresh_tokens 테이블을 만든다`() {
+    fun `마이그레이션은 users, refresh_tokens, events 테이블을 만든다`() {
         val dataSource = h2()
 
         val result = DatabaseMigrator(dataSource, DatabaseVendor.POSTGRESQL).migrate()
 
         assertTrue(result.success)
-        assertEquals(setOf("users", "refresh_tokens"), dataSource.userTables())
+        assertEquals(setOf("users", "refresh_tokens", "events"), dataSource.userTables())
     }
 
     @Test
@@ -78,6 +78,39 @@ class DatabaseMigratorTest {
             )
         }
     }
+
+    @Test
+    fun `사용자를 지우면 그 사용자의 일정도 지워진다`() {
+        val dataSource = migrated()
+        dataSource.insertUser(id = "u1", email = "a@example.com")
+        dataSource.insertEvent(id = "e1", ownerUserId = "u1")
+
+        dataSource.execute("DELETE FROM users WHERE id = 'u1'")
+
+        assertEquals(0, dataSource.count("events"))
+    }
+
+    @Test
+    fun `없는 사용자의 일정은 저장할 수 없다`() {
+        val dataSource = migrated()
+
+        assertFailsWith<SQLException> { dataSource.insertEvent(id = "e1", ownerUserId = "nobody") }
+    }
+
+    @Test
+    fun `종료 시각이 시작 시각보다 늦지 않은 일정은 저장할 수 없다`() {
+        val dataSource = migrated()
+        dataSource.insertUser(id = "u1", email = "a@example.com")
+
+        assertFailsWith<SQLException> {
+            dataSource.insertEvent(
+                id = "e1",
+                ownerUserId = "u1",
+                startAt = "2026-10-26 10:00:00+00",
+                endAt = "2026-10-26 10:00:00+00",
+            )
+        }
+    }
 }
 
 internal fun DataSource.execute(sql: String) {
@@ -100,6 +133,17 @@ internal fun DataSource.insertUser(
 ) = execute(
     "INSERT INTO users (id, email, password_hash, display_name, created_at, updated_at) " +
         "VALUES ('$id', '$email', 'hash', 'name', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+)
+
+internal fun DataSource.insertEvent(
+    id: String,
+    ownerUserId: String,
+    startAt: String = "2026-10-26 10:00:00+00",
+    endAt: String = "2026-10-26 11:00:00+00",
+) = execute(
+    "INSERT INTO events (id, owner_user_id, title, start_at, end_at, created_at) " +
+        "VALUES ('$id', '$ownerUserId', 'title', TIMESTAMP WITH TIME ZONE '$startAt', " +
+        "TIMESTAMP WITH TIME ZONE '$endAt', CURRENT_TIMESTAMP)",
 )
 
 /** 현재 catalog/schema 의 사용자 테이블 (시스템 카탈로그·Flyway 이력 제외). */

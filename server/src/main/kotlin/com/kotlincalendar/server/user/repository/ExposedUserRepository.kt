@@ -1,5 +1,6 @@
 package com.kotlincalendar.server.user.repository
 
+import com.kotlincalendar.server.common.database.epochMillisToUtcOffsetDateTime
 import kotlinx.coroutines.Dispatchers
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.SqlExpressionBuilder.eq
@@ -46,7 +47,8 @@ class ExposedUserRepository(
                 it[email] = user.email
                 it[displayName] = user.displayName
                 it[passwordHash] = user.passwordHash
-                it[createdAt] = user.createdAtEpochMillis
+                it[createdAt] = user.createdAtEpochMillis.epochMillisToUtcOffsetDateTime()
+                it[updatedAt] = user.createdAtEpochMillis.epochMillisToUtcOffsetDateTime()
             }
             user
         }

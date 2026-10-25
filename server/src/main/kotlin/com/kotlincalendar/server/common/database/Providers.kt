@@ -1,11 +1,13 @@
 package com.kotlincalendar.server.common.database
 
 import com.zaxxer.hikari.HikariConfig
-import org.jetbrains.exposed.sql.Database
+import org.h2.jdbcx.JdbcDataSource
+import javax.sql.DataSource
 
 class SupabaseDatabaseProvider(
     settings: JdbcSettings,
 ) : HikariDatabaseProvider(settings) {
+    override val vendor = DatabaseVendor.SUPABASE
     override val driverClassName = "org.postgresql.Driver"
 
     override fun HikariConfig.customize() {
@@ -14,20 +16,13 @@ class SupabaseDatabaseProvider(
     }
 }
 
-class MySqlDatabaseProvider(
-    settings: JdbcSettings,
-) : HikariDatabaseProvider(settings) {
-    override val driverClassName = "com.mysql.cj.jdbc.Driver"
-}
-
+/** H2는 PostgreSQL 호환 모드(`MODE=PostgreSQL`)로 PostgreSQL 마이그레이션을 그대로 적용한다. */
 class H2DatabaseProvider(
     private val url: String,
 ) : DatabaseProvider {
-    override fun connect(): Database =
-        Database.connect(
-            url = url,
-            driver = "org.h2.Driver",
-        )
+    override val vendor = DatabaseVendor.POSTGRESQL
+
+    override fun dataSource(): DataSource = JdbcDataSource().apply { setURL(this@H2DatabaseProvider.url) }
 
     override fun close() = Unit
 }

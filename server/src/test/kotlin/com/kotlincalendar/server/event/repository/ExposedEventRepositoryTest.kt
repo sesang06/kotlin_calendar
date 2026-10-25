@@ -1,12 +1,13 @@
 package com.kotlincalendar.server.event.repository
 
-import com.kotlincalendar.server.common.database.H2DatabaseProvider
+import com.kotlincalendar.server.common.database.migratedH2Database
 import com.kotlincalendar.server.event.domain.Event
+import com.kotlincalendar.server.user.repository.ExposedUserRepository
+import com.kotlincalendar.server.user.repository.UserRecord
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import org.jetbrains.exposed.sql.SchemaUtils
-import org.jetbrains.exposed.sql.transactions.transaction
 import java.util.UUID
+import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -15,9 +16,25 @@ import kotlin.test.assertTrue
 import kotlin.time.Instant
 
 class ExposedEventRepositoryTest {
-    private val provider = H2DatabaseProvider("jdbc:h2:mem:${UUID.randomUUID()};DB_CLOSE_DELAY=-1")
-    private val database = provider.connect().also { transaction(it) { SchemaUtils.create(EventTable) } }
+    private val database = migratedH2Database()
     private val repo = ExposedEventRepository(database)
+
+    @BeforeTest
+    fun setUpOwners() =
+        runTest {
+            val users = ExposedUserRepository(database)
+            listOf("user-1", "user-2").forEach { id ->
+                users.save(
+                    UserRecord(
+                        id = id,
+                        email = "$id@example.com",
+                        displayName = id,
+                        passwordHash = "hash",
+                        createdAtEpochMillis = 0L,
+                    ),
+                )
+            }
+        }
 
     private fun event(
         id: String = UUID.randomUUID().toString(),

@@ -1,27 +1,29 @@
 package com.kotlincalendar.server.user.repository
 
+import com.kotlincalendar.server.common.database.toEpochMillis
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
+import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
+/** 스키마는 `db/migration/postgresql/V2__create_refresh_tokens.sql`. 원문 토큰 대신 SHA-256 hex만 저장한다. */
 object RefreshTokenTable : Table("refresh_tokens") {
-    val token = varchar("token", 128)
+    val id = varchar("id", 36)
     val userId = varchar("user_id", 36)
-    val expiresAt = long("expires_at")
-    val createdAt = long("created_at")
-    val revoked = bool("revoked").default(false)
+    val tokenHash = char("token_hash", 64)
+    val expiresAt = timestampWithTimeZone("expires_at")
+    val createdAt = timestampWithTimeZone("created_at")
+    val revokedAt = timestampWithTimeZone("revoked_at").nullable()
 
-    override val primaryKey = PrimaryKey(token)
-
-    init {
-        index(isUnique = false, userId)
-    }
+    override val primaryKey = PrimaryKey(id)
 }
 
-fun ResultRow.toRefreshTokenRecord(): RefreshTokenRecord =
+/** 해시만 저장하므로 원문 [token]은 조회에 쓴 값을 그대로 돌려준다. */
+fun ResultRow.toRefreshTokenRecord(token: String): RefreshTokenRecord =
     RefreshTokenRecord(
-        token = this[RefreshTokenTable.token],
+        id = this[RefreshTokenTable.id],
+        token = token,
         userId = this[RefreshTokenTable.userId],
-        expiresAt = this[RefreshTokenTable.expiresAt],
-        createdAt = this[RefreshTokenTable.createdAt],
-        revoked = this[RefreshTokenTable.revoked],
+        expiresAt = this[RefreshTokenTable.expiresAt].toEpochMillis(),
+        createdAt = this[RefreshTokenTable.createdAt].toEpochMillis(),
+        revokedAt = this[RefreshTokenTable.revokedAt]?.toEpochMillis(),
     )

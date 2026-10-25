@@ -6,22 +6,25 @@ description: 서버 DB 연결(Supabase/H2)과 Flyway 마이그레이션·스키�
 # 서버 데이터베이스
 
 - DB 선택은 `plugins/Database.kt`의 `databaseModule`/`databaseProviderFrom` **한 곳**에서만. 벤더 차이는 `common/database/Providers.kt`의 `DatabaseProvider` 구현 안에만.
-- `configureDatabase()`가 `DatabaseMigrator`(Flyway)로 마이그레이션을 적용한다. Repository는 주입된 `Database`만 안다.
+- `configureDatabase()`가 시작 시 `DatabaseMigrator`(Flyway)로 마이그레이션을 적용한다. `DatabaseProvider.vendor`가 위치를 정한다(Supabase는 RLS까지, H2는 PostgreSQL 공통만). Repository는 주입된 `Database`만 안다. `SchemaUtils.create` 금지.
 
 ## 환경변수 (`application.yaml`은 `$ENV:default`만, 비밀값 커밋 금지)
 
 `DB_PROVIDER`(`supabase`|`h2`, 기본 supabase), `SUPABASE_DB_URL`(Session pooler JDBC URL), `SUPABASE_DB_USER`, `SUPABASE_DB_PASSWORD`, `SUPABASE_DB_POOL_SIZE`(5), `H2_URL`(PostgreSQL 모드). 로컬은 `DB_PROVIDER=h2`.
+
+Supabase 접속값: 대시보드 **Connect → Session pooler → JDBC**. URL은 `jdbc:postgresql://aws-0-<리전>.pooler.supabase.com:5432/postgres`(문자열의 `user`·`password` 쿼리는 빼고 환경변수로), 사용자는 `postgres.<프로젝트 ref>`. Direct connection은 IPv6 전용이라 쓰지 않는다.
 
 ## 마이그레이션 (`server/src/main/resources/db/migration/`)
 
 - `postgresql/V<n>__<설명>.sql`: 모든 벤더(Supabase·PostgreSQL·H2) 공통. `supabase/R__*.sql`: Supabase 전용 반복 마이그레이션.
 - **머지된 V 파일은 절대 수정하지 않는다** → 새 `V<n+1>__alter_…`.
 - 새 테이블은 `supabase/R__enable_row_level_security.sql`에 `ENABLE ROW LEVEL SECURITY` 추가.
+- 대시보드(Table/SQL Editor)·Supabase MCP로 스키마를 직접 바꾸지 않는다. Flyway 이력(`flyway_schema_history`)과 어긋난다.
 - H2(PostgreSQL 모드)와 PostgreSQL 양쪽에서 돌아가는 문법만.
 
 ## 스키마 규칙
 
-- 시각 `TIMESTAMPTZ` / Exposed `timestamp("xxx_at")`, 문자열 `VARCHAR(n)` 길이 명시, 테이블은 snake_case 복수형, 예약어 회피(`end` → `end_at`).
+- 시각 `TIMESTAMPTZ` / Exposed `timestampWithTimeZone("xxx_at")` + `common/database/Timestamps.kt` 변환 (Exposed 0.61의 `timestamp()`는 구 `kotlinx.datetime.Instant`라 쓰지 않는다), 문자열 `VARCHAR(n)` 길이 명시, 테이블은 snake_case 복수형, 예약어 회피(`end` → `end_at`).
 - 제약 이름: `pk_<t>`, `uq_<t>_<col>`, `fk_<t>_<ref>`, `ck_<t>_<규칙>`, `ix_<t>_<cols>`. 소유 관계는 `ON DELETE CASCADE`.
 - 비밀번호·토큰은 해시만 (`password_hash`, `token_hash`).
 

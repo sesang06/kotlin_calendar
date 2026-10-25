@@ -2,10 +2,13 @@ package com.kotlincalendar.server.common.database
 
 import com.zaxxer.hikari.HikariConfig
 import com.zaxxer.hikari.HikariDataSource
-import org.jetbrains.exposed.sql.Database
+import javax.sql.DataSource
 
+/** DB 벤더별 접속. Flyway([DatabaseMigrator])와 Exposed가 같은 [DataSource]를 쓴다. */
 interface DatabaseProvider : AutoCloseable {
-    fun connect(): Database
+    val vendor: DatabaseVendor
+
+    fun dataSource(): DataSource
 }
 
 data class JdbcSettings(
@@ -23,7 +26,7 @@ abstract class HikariDatabaseProvider(
 
     protected open fun HikariConfig.customize() = Unit
 
-    override fun connect(): Database {
+    override fun dataSource(): DataSource {
         val config =
             HikariConfig().apply {
                 driverClassName = this@HikariDatabaseProvider.driverClassName
@@ -33,9 +36,7 @@ abstract class HikariDatabaseProvider(
                 maximumPoolSize = settings.maxPoolSize
                 customize()
             }
-        val ds = HikariDataSource(config)
-        dataSource = ds
-        return Database.connect(ds)
+        return HikariDataSource(config).also { dataSource = it }
     }
 
     override fun close() {

@@ -5,7 +5,14 @@ interface RefreshTokenRepository {
 
     suspend fun save(record: RefreshTokenRecord): RefreshTokenRecord
 
-    suspend fun revoke(token: String): Boolean
+    /** 아직 폐기되지 않은 토큰만 [revokedAt]으로 폐기한다. */
+    suspend fun revoke(
+        token: String,
+        revokedAt: Long,
+    ): Boolean
 
-    suspend fun revokeAllByUserId(userId: String): Int
+    suspend fun revokeAllByUserId(
+        userId: String,
+        revokedAt: Long,
+    ): Int
 }

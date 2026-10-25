@@ -1,34 +1,31 @@
 package com.kotlincalendar.server.event.repository
 
+import com.kotlincalendar.server.common.database.toKotlinInstant
 import com.kotlincalendar.server.event.domain.Event
 import org.jetbrains.exposed.sql.ResultRow
 import org.jetbrains.exposed.sql.Table
-import kotlin.time.Instant
+import org.jetbrains.exposed.sql.kotlin.datetime.timestampWithTimeZone
 
-/** 시각은 벤더 중립을 위해 UTC epoch millis(BIGINT)로 저장한다. */
+/** 스키마는 `db/migration/postgresql/V3__create_events.sql`. */
 object EventTable : Table("events") {
     val id = varchar("id", 36)
+    val ownerUserId = varchar("owner_user_id", 36)
     val title = varchar("title", 200)
-    val startAt = long("start_at")
-    val endAt = long("end_at")
-    val createdAt = long("created_at")
     val description = varchar("description", 2000).default("")
-    val ownerUserId = varchar("owner_user_id", 36).default("")
+    val startAt = timestampWithTimeZone("start_at")
+    val endAt = timestampWithTimeZone("end_at")
+    val createdAt = timestampWithTimeZone("created_at")
 
     override val primaryKey = PrimaryKey(id)
-
-    init {
-        index(isUnique = false, ownerUserId, startAt, endAt)
-    }
 }
 
 fun ResultRow.toEvent() =
     Event(
         id = this[EventTable.id],
         title = this[EventTable.title],
-        start = Instant.fromEpochMilliseconds(this[EventTable.startAt]),
-        end = Instant.fromEpochMilliseconds(this[EventTable.endAt]),
-        createdAt = Instant.fromEpochMilliseconds(this[EventTable.createdAt]),
+        start = this[EventTable.startAt].toKotlinInstant(),
+        end = this[EventTable.endAt].toKotlinInstant(),
+        createdAt = this[EventTable.createdAt].toKotlinInstant(),
         description = this[EventTable.description],
         ownerUserId = this[EventTable.ownerUserId],
     )
