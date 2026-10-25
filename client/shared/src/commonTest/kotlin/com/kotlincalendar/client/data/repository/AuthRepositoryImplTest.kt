@@ -4,6 +4,8 @@ import com.kotlincalendar.client.data.mapper.toWireInstant
 import com.kotlincalendar.client.domain.model.AuthState
 import com.kotlincalendar.client.fake.FakeAuthRemoteDataSource
 import com.kotlincalendar.client.fake.FakeTokenStorage
+import com.kotlincalendar.client.fake.FakeUserStorage
+import com.kotlincalendar.client.fake.FixedClock
 import com.kotlincalendar.proto.auth.v1.AuthTokens
 import com.kotlincalendar.proto.auth.v1.LoginResponse
 import com.kotlincalendar.proto.auth.v1.LogoutResponse
@@ -15,6 +17,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
+import kotlin.time.Duration.Companion.seconds
 import kotlin.time.Instant
 import com.kotlincalendar.client.domain.model.AuthTokens as DomainTokens
 import com.kotlincalendar.client.domain.model.User as DomainUser
@@ -66,7 +69,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage()
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
 
             remote.signUpResult =
                 Result.success(
@@ -90,7 +93,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage()
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
 
             remote.signUpResult = Result.failure(RuntimeException("Sign up failed"))
 
@@ -107,7 +110,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage()
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
 
             remote.loginResult =
                 Result.success(
@@ -131,7 +134,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage()
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
 
             remote.loginResult = Result.failure(RuntimeException("Invalid credentials"))
 
@@ -147,7 +150,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage(initialTokens = domainTokens)
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
 
             val newProtoTokens =
                 AuthTokens(
@@ -187,7 +190,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage()
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
 
             val result = repository.refreshToken()
 
@@ -199,7 +202,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage()
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
             remote.loginResult = Result.success(LoginResponse(user = protoUser, tokens = protoTokens))
             repository.login("test@example.com", "password")
 
@@ -218,7 +221,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage(initialTokens = domainTokens)
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
 
             remote.loginResult =
                 Result.success(
@@ -242,7 +245,7 @@ class AuthRepositoryImplTest {
         runTest {
             val remote = FakeAuthRemoteDataSource()
             val storage = FakeTokenStorage(initialTokens = domainTokens)
-            val repository = AuthRepositoryImpl(remote, storage)
+            val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
 
             remote.loginResult =
                 Result.success(
@@ -257,5 +260,85 @@ class AuthRepositoryImplTest {
             assertTrue(result.isSuccess)
             assertNull(storage.tokens)
             assertEquals(AuthState.Unauthenticated, repository.authState.value)
+        }
+
+    @Test
+    fun login_success_savesUser() =
+        runTest {
+            val remote = FakeAuthRemoteDataSource()
+            val userStorage = FakeUserStorage()
+            val repository = AuthRepositoryImpl(remote, FakeTokenStorage(), userStorage)
+            remote.loginResult = Result.success(LoginResponse(user = protoUser, tokens = protoTokens))
+
+            repository.login("test@example.com", "password")
+
+            assertEquals(domainUser, userStorage.user)
+        }
+
+    @Test
+    fun restoreSession_validRefreshToken_restoresAuthenticatedState() =
+        runTest {
+            val repository =
+                AuthRepositoryImpl(
+                    FakeAuthRemoteDataSource(),
+                    FakeTokenStorage(initialTokens = domainTokens),
+                    FakeUserStorage(initialUser = domainUser),
+                    clock = FixedClock(domainTokens.refreshTokenExpiresAt - 1.seconds),
+                )
+
+            val restored = repository.restoreSession()
+
+            assertEquals(domainUser, restored)
+            assertEquals(AuthState.Authenticated(domainUser), repository.authState.value)
+        }
+
+    @Test
+    fun restoreSession_expiredRefreshToken_clearsSession() =
+        runTest {
+            val tokenStorage = FakeTokenStorage(initialTokens = domainTokens)
+            val userStorage = FakeUserStorage(initialUser = domainUser)
+            val repository =
+                AuthRepositoryImpl(
+                    FakeAuthRemoteDataSource(),
+                    tokenStorage,
+                    userStorage,
+                    clock = FixedClock(domainTokens.refreshTokenExpiresAt),
+                )
+
+            val restored = repository.restoreSession()
+
+            assertNull(restored)
+            assertNull(tokenStorage.tokens)
+            assertNull(userStorage.user)
+            assertEquals(AuthState.Unauthenticated, repository.authState.value)
+        }
+
+    @Test
+    fun restoreSession_missingUser_clearsTokens() =
+        runTest {
+            val tokenStorage = FakeTokenStorage(initialTokens = domainTokens)
+            val repository =
+                AuthRepositoryImpl(
+                    FakeAuthRemoteDataSource(),
+                    tokenStorage,
+                    FakeUserStorage(),
+                    clock = FixedClock(domainTokens.refreshTokenExpiresAt - 1.seconds),
+                )
+
+            assertNull(repository.restoreSession())
+            assertNull(tokenStorage.tokens)
+        }
+
+    @Test
+    fun logout_clearsSavedUser() =
+        runTest {
+            val remote = FakeAuthRemoteDataSource()
+            val userStorage = FakeUserStorage(initialUser = domainUser)
+            val repository = AuthRepositoryImpl(remote, FakeTokenStorage(initialTokens = domainTokens), userStorage)
+            remote.logoutResult = Result.success(LogoutResponse())
+
+            repository.logout()
+
+            assertNull(userStorage.user)
         }
 }
