@@ -86,7 +86,7 @@ class EventHttpHandlerTest {
 
         val response = client.post("/api/events") {
             contentType(ProtobufContentType)
-            setBody(CreateEventRequest.newBuilder().setTitle("회의").setStartEpochMillis(s).setEndEpochMillis(e).build().toByteArray())
+            setBody(CreateEventRequest.newBuilder().setTitle("회의").setStartTime(s).setEndTime(e).build().toByteArray())
         }
 
         assertEquals(HttpStatusCode.Created, response.status)

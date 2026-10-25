@@ -43,13 +43,11 @@ option java_package = "com.kotlincalendar.proto.calendar.v1";
 
 | 의미 | proto 타입 | 비고 |
 |---|---|---|
-| 시각 | `int64 xxx_epoch_millis` | UTC. Wire·protoc 모두 KMP에서 다루기 쉬움 |
+| 시각 | `google.protobuf.Timestamp` | `import "google/protobuf/timestamp.proto";` 사용. 필드명은 `start_time`, `end_time`, `created_at` 등 (`_epoch_millis` 접미사 사용 금지) |
 | 날짜 | `string` (`yyyy-MM-dd`) | `kotlinx.datetime.LocalDate.parse` |
 | ID | `string` | UUID 문자열 |
 | 선택 값 | `optional` 필드 | proto3 기본값과 "없음" 구분 필요할 때만 |
 | 에러 (HTTP) | `ErrorResponse { string message }` | gRPC는 `Status` 사용 |
-
-`google.protobuf.Timestamp` 등 well-known type은 Wire와 protoc의 매핑이 달라서 쓰지 않는다.
 
 ## 하위 호환 (필수)
 

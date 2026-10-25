@@ -55,7 +55,7 @@ description: kotlin_calendar Pull Request를 별도의 리뷰 에이전트가 �
 
 **contract**
 - 필드 번호 재사용·타입 변경·삭제 시 `reserved` 누락이 없는가?
-- 네이밍(snake_case 필드, `XxxApi` 서비스, Request/Response 쌍), 시각 = epoch millis 규칙
+- 네이밍(snake_case 필드, `XxxApi` 서비스, Request/Response 쌍), 시각 = `google.protobuf.Timestamp` (`start_time`, `end_time`, `created_at` 등) 규칙
 - 새 RPC가 HTTP 매핑 표와 서버 HTTP·gRPC Handler, 클라이언트 RemoteDataSource 양쪽에 반영됐는가?
 - 에러 매핑(400/404/409 ↔ INVALID_ARGUMENT/NOT_FOUND/ALREADY_EXISTS)이 일관적인가?
 

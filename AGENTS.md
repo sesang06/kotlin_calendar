@@ -33,7 +33,7 @@ kotlin_calendar/
 | 통신 | gRPC(:50051) 또는 HTTP(:8080, `application/x-protobuf`). 같은 Service를 두 Handler가 노출. 웹은 HTTP 전용 |
 | DB | Supabase(PostgreSQL). `DatabaseProvider` 주입으로 MySQL·H2 교체 가능, Repository는 벤더 중립 Exposed |
 | DI | 서버·클라이언트 모두 Koin |
-| 시간 | `kotlin.time.Instant/Clock`, 날짜는 `kotlinx-datetime`. proto에서는 epoch millis |
+| 시간 | `kotlin.time.Instant/Clock`, 날짜는 `kotlinx-datetime`. proto에서는 `google.protobuf.Timestamp` |
 | 테스트 | 서버 JUnit5 + MockK, 클라이언트 commonTest + Fake + Turbine |
 | 린트 | ktlint (`ktlint_official`) |
 | CI | GitHub Actions |

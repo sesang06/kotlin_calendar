@@ -2,16 +2,18 @@ syntax = "proto3";
 
 package calendar.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option java_multiple_files = true;
 option java_package = "com.kotlincalendar.proto.calendar.v1";
 
-// 캘린더 일정. 시각은 UTC epoch millis.
+// 캘린더 일정. 시각은 google.protobuf.Timestamp.
 message Event {
   string id = 1;
   string title = 2;
-  int64 start_epoch_millis = 3;
-  int64 end_epoch_millis = 4;
-  int64 created_at_epoch_millis = 5;
+  google.protobuf.Timestamp start_time = 3;
+  google.protobuf.Timestamp end_time = 4;
+  google.protobuf.Timestamp created_at = 5;
   // 빈 문자열이면 설명 없음.
   string description = 6;
   // 일정 소유자 (auth.v1.User.id). 서버가 access token에서 채운다.
@@ -20,7 +22,7 @@ message Event {
 
 // 하루 단위 일정 조회.
 // 하루 구간은 time_zone 기준 [date 00:00, 다음 날 00:00) = [day_start, day_end).
-// 이 구간과 겹치는 일정을 반환한다: start_epoch_millis < day_end AND end_epoch_millis > day_start.
+// 이 구간과 겹치는 일정을 반환한다: start_time < day_end AND end_time > day_start.
 // (여러 날에 걸치거나 자정을 넘는 일정은 겹치는 모든 날에 포함된다.)
 message ListEventsRequest {
   // ISO-8601 날짜 (yyyy-MM-dd). 형식이 틀리거나 존재하지 않는 날짜면 400 / INVALID_ARGUMENT.
@@ -31,7 +33,7 @@ message ListEventsRequest {
 }
 
 message ListEventsResponse {
-  // 요청한 하루 구간 [day_start, day_end)와 겹치는 일정. start_epoch_millis 오름차순.
+  // 요청한 하루 구간 [day_start, day_end)와 겹치는 일정. start_time 오름차순.
   repeated Event events = 1;
 }
 
@@ -44,9 +46,9 @@ message GetEventRequest {
 message CreateEventRequest {
   // 1~200자, 공백만으로 이뤄질 수 없음.
   string title = 1;
-  int64 start_epoch_millis = 2;
-  // start_epoch_millis 보다 커야 함.
-  int64 end_epoch_millis = 3;
+  google.protobuf.Timestamp start_time = 2;
+  // start_time 보다 커야 함.
+  google.protobuf.Timestamp end_time = 3;
   // 0~2000자.
   string description = 4;
 }
