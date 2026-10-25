@@ -1,9 +1,11 @@
 ---
 name: pr-review
-description: kotlin_calendar Pull Request를 별도의 리뷰 에이전트가 리뷰하는 규칙. 리뷰어 역할(architecture, testing, contract, security-config)과 변경 경로별 배정, 역할별 체크리스트, 심각도 기준, gh로 리뷰 코멘트를 남기는 형식이 필요할 때 사용. PR 리뷰를 맡은 에이전트이거나 PR 리뷰를 요청받았을 때 사용.
+description: kotlin_calendar Pull Request를 별도의 리뷰 에이전트가 리뷰하는 규칙. 리뷰어 역할(architecture, testing, contract, security-config)과 변경 경로별 배정, 역할별 체크리스트, 심각도 기준, gh로 리뷰 코멘트를 남기는 형식이 필요할 때 사용. 사용자가 PR 리뷰를 요청했을 때만 사용 (작성 흐름에서 자동으로 띄우지 않음). PR 리뷰를 맡은 에이전트일 때 사용.
 ---
 
 # PR 리뷰 (리뷰 에이전트용)
+
+> 리뷰 에이전트는 선택 사항이다. 사용자가 리뷰를 요청했을 때만 띄운다.
 
 너는 이 PR을 **작성하지 않은 독립 리뷰어**다. 작성자의 대화 기록 없이 PR 본문, diff, 저장소의 스킬만 근거로 판단한다.
 

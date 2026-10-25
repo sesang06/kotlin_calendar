@@ -38,7 +38,7 @@ kotlin_calendar/
 | 린트 | ktlint (`ktlint_official`) |
 | CI | GitHub Actions |
 | 웹 배포 | Vercel 정적 호스팅(Wasm) + `api/proxy.js`가 `/api/*`를 Ktor 서버로 전달 (`docs/vercel-deployment.md`) |
-| 협업 | 피처별 worktree + PR, 역할별 리뷰 에이전트 |
+| 협업 | 피처별 worktree + PR, 역할별 리뷰 에이전트(사용자 요청 시) |
 | 저장소 | https://github.com/sesang06/kotlin_calendar (public) |
 
 ## 작업 흐름 (필수)
@@ -48,8 +48,8 @@ kotlin_calendar/
 1. **피처 분할** — 요청을 독립적으로 머지 가능한 피처로 나누고 목록을 사용자에게 보여준다 (`feature-worktree`).
 2. **worktree + 병렬 실행** — 피처마다 브랜치와 `../kotlin_calendar-worktrees/<브랜치>` worktree를 만들고, 독립 피처는 **피처마다 에이전트를 하나씩 동시에** 띄워 진행한다. 순차 처리하지 않는다 (병렬로 못 하는 이유가 있으면 사용자에게 그 이유를 말한다). 의존 피처는 선행 피처 첫 커밋 위에 stacked로 바로 시작한다.
 3. **PR** — ktlint·테스트 검증 후 피처마다 PR 하나를 연다 (`pull-request`, `.github/pull_request_template.md`).
-4. **리뷰** — PR을 만든 에이전트는 리뷰하지 않는다. 변경 경로에 따라 역할별(architecture / testing / contract / security-config) **별도 리뷰 에이전트**를 새 컨텍스트로 띄워 `pr-review` 스킬로 리뷰한다.
-5. **반영·머지** — Blocker/Major를 새 커밋으로 반영하고 해당 역할에 재리뷰를 요청한다. 머지는 사용자가 하거나 명시적으로 지시할 때만.
+4. **리뷰 (선택)** — 리뷰 에이전트는 **사용자가 요청했을 때만** 띄운다. 요청이 없으면 PR을 연 뒤 리뷰 에이전트 없이 멈추고, 필요하면 리뷰를 요청할 수 있다고 한 줄로 알린다. 요청을 받으면 PR을 만든 에이전트는 리뷰하지 않고, 변경 경로에 따라 역할별(architecture / testing / contract / security-config) **별도 리뷰 에이전트**를 새 컨텍스트로 띄워 `pr-review` 스킬로 리뷰한다.
+5. **반영·머지** — 리뷰(에이전트·사람)의 Blocker/Major를 새 커밋으로 반영하고, 리뷰 에이전트가 낸 지적이면 해당 역할에 재리뷰를 요청한다. 머지는 사용자가 하거나 명시적으로 지시할 때만.
 
 ## 스킬
 
@@ -58,8 +58,8 @@ kotlin_calendar/
 | 영역 | 스킬 | 언제 |
 |---|---|---|
 | 흐름 | `feature-worktree` | 작업 시작: 피처 분할, 브랜치·worktree 생성, stacked 처리, 정리 |
-| 흐름 | `pull-request` | 검증 → push → PR 생성, 리뷰 요청, 반영, 머지 조건 |
-| 흐름 | `pr-review` | 리뷰 에이전트: 역할 배정, 체크리스트, 심각도, `gh pr review` 형식 |
+| 흐름 | `pull-request` | 검증 → push → PR 생성, (요청 시) 리뷰 요청, 반영, 머지 조건 |
+| 흐름 | `pr-review` | 리뷰 에이전트(사용자 요청 시에만): 역할 배정, 체크리스트, 심각도, `gh pr review` 형식 |
 | 공통 | `proto-contract` | `.proto` 작성·변경, 코드 생성, gRPC↔HTTP 경로 매핑 |
 | 공통 | `api-transport` | gRPC/HTTP 전송 방식, 서버 이중 노출, 클라이언트 전송 선택 |
 | 공통 | `ktlint` | 코드 스타일, `ktlintCheck`/`ktlintFormat` |

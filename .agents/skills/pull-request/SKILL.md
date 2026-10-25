@@ -1,6 +1,6 @@
 ---
 name: pull-request
-description: kotlin_calendar 피처 브랜치를 GitHub Pull Request로 올리는 규칙. PR 전 로컬 검증(ktlint·테스트), push, gh pr create 본문 형식, stacked PR base 설정, 리뷰 에이전트 요청, 리뷰 반영과 머지 조건이 필요할 때 사용. feature-worktree에서 피처 구현을 마친 뒤 사용.
+description: kotlin_calendar 피처 브랜치를 GitHub Pull Request로 올리는 규칙. PR 전 로컬 검증(ktlint·테스트), push, gh pr create 본문 형식, stacked PR base 설정, (사용자가 요청할 때) 리뷰 에이전트 요청, 리뷰 반영과 머지 조건이 필요할 때 사용. feature-worktree에서 피처 구현을 마친 뒤 사용.
 ---
 
 # Pull Request
@@ -43,9 +43,11 @@ gh pr create \
 - stacked PR은 본문 "의존" 항목에 선행 PR 링크를 적는다.
 - 드래프트가 필요하면 `--draft`, 리뷰 준비가 되면 `gh pr ready`.
 
-## 3. 리뷰 요청
+## 3. 리뷰 요청 (선택 — 사용자가 요청할 때만)
 
-PR을 연 **작성 에이전트는 자기 PR을 리뷰하지 않는다.** PR마다 별도 리뷰 에이전트를 띄워 `pr-review` 스킬로 리뷰하게 한다.
+리뷰 에이전트는 **기본으로 띄우지 않는다.** 사용자가 리뷰를 요청했을 때만 아래를 따른다. 요청이 없으면 PR 링크를 전하고 "리뷰 에이전트가 필요하면 요청해 달라"고 한 줄로 알린 뒤 멈춘다.
+
+요청을 받으면 PR을 연 **작성 에이전트는 자기 PR을 리뷰하지 않는다.** PR마다 별도 리뷰 에이전트를 띄워 `pr-review` 스킬로 리뷰하게 한다.
 
 1. `gh pr diff <번호> --name-only`로 바뀐 경로를 보고 `pr-review`의 "리뷰어 배정 표"로 필요한 리뷰어 역할을 정한다.
 2. 역할마다 **새 컨텍스트의 에이전트**(작성 대화를 물려받지 않음)를 띄운다. 넘기는 정보는 PR 번호, 역할, `pr-review` 스킬 경로뿐이다. 구현 의도는 PR 본문으로만 전달한다.
@@ -57,14 +59,14 @@ PR을 연 **작성 에이전트는 자기 PR을 리뷰하지 않는다.** PR마�
 - 🔴 Blocker / 🟠 Major는 반드시 고치거나, 고치지 않는 이유를 해당 코멘트에 답한다.
 - 🟡 Minor / 🔵 Nit는 판단해서 반영. 반영하지 않으면 한 줄로 이유를 남긴다.
 - 반영은 같은 worktree에서 **새 커밋**으로 (`fix(server): address review — ...`). 리뷰 후 force-push 금지.
-- 반영 후 1단계 검증을 다시 돌리고, Blocker/Major를 낸 리뷰어 역할만 다시 리뷰를 요청한다.
+- 반영 후 1단계 검증을 다시 돌리고, 리뷰 에이전트를 띄운 경우 Blocker/Major를 낸 리뷰어 역할만 다시 리뷰를 요청한다.
 - 여러 PR의 리뷰 반영은 PR(=worktree)마다 작성 에이전트를 따로 띄워 병렬로 한다 (`feature-worktree`의 "병렬 실행").
 - stacked PR의 선행 브랜치가 바뀌면 후속 브랜치에는 **merge**로 반영한다 (이미 push했으면 rebase + force-push 금지).
 
 ## 5. 머지 조건
 
 - CI(`ci.yml`) 전부 통과
-- 모든 리뷰어 결과가 `APPROVE` 또는 남은 지적이 Minor/Nit뿐
+- 리뷰를 받은 경우: 모든 리뷰어 결과가 `APPROVE` 또는 남은 지적이 Minor/Nit뿐 (리뷰 에이전트를 요청하지 않았으면 이 조건은 없다)
 - stacked PR은 선행 PR이 먼저 머지되고 base가 `main`으로 바뀐 뒤
 - **머지는 사용자가 하거나 사용자가 명시적으로 지시했을 때만.** 기본 방식은 squash merge.
 
