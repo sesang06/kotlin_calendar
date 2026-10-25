@@ -74,6 +74,10 @@ class AuthRepositoryImpl(
             val newTokens = response.tokens?.toDomain() ?: error("Missing tokens in RefreshTokenResponse")
             tokenStorage.saveTokens(newTokens)
             newTokens
+        }.onFailure {
+            // refresh token으로도 세션을 이어갈 수 없으면 로그아웃 상태로 되돌린다.
+            tokenStorage.clearTokens()
+            _authState.value = AuthState.Unauthenticated
         }
 
     override suspend fun logout(): Result<Unit> =

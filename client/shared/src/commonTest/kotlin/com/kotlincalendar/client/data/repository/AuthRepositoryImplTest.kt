@@ -195,6 +195,25 @@ class AuthRepositoryImplTest {
         }
 
     @Test
+    fun refreshToken_remoteFailure_clearsTokensAndLogsOut() =
+        runTest {
+            val remote = FakeAuthRemoteDataSource()
+            val storage = FakeTokenStorage()
+            val repository = AuthRepositoryImpl(remote, storage)
+            remote.loginResult = Result.success(LoginResponse(user = protoUser, tokens = protoTokens))
+            repository.login("test@example.com", "password")
+
+            remote.refreshTokenResult = Result.failure(RuntimeException("invalid refresh token"))
+
+            val result = repository.refreshToken()
+
+            assertTrue(result.isFailure)
+            assertNull(storage.tokens)
+            assertEquals(AuthState.Unauthenticated, repository.authState.value)
+            assertNull(repository.getSavedUser())
+        }
+
+    @Test
     fun logout_clearsTokensAndResetsAuthState() =
         runTest {
             val remote = FakeAuthRemoteDataSource()
