@@ -29,12 +29,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.compose.viewmodel.koinViewModel
+import org.koin.core.parameter.parametersOf
 
+/**
+ * 일정 상세 화면 진입점.
+ *
+ * ViewModel은 [eventId]를 Koin 파라미터로 받아 생성된다. Koin 등록은
+ * `viewModel { params -> EventDetailViewModel(params.get(), get()) }` 형태여야 한다.
+ */
 @Composable
 fun EventDetailRoute(
-    viewModel: EventDetailViewModel,
+    eventId: String,
     onBack: () -> Unit,
     onDeleted: () -> Unit,
+    viewModel: EventDetailViewModel = koinViewModel { parametersOf(eventId) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
