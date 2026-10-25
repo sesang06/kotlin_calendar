@@ -25,6 +25,7 @@ import com.kotlincalendar.client.presentation.auth.signup.SignUpViewModel
 import com.kotlincalendar.client.presentation.calendar.CalendarViewModel
 import com.kotlincalendar.client.presentation.event.create.EventCreateViewModel
 import com.kotlincalendar.client.presentation.event.detail.EventDetailViewModel
+import com.kotlincalendar.client.presentation.profile.ProfileViewModel
 import com.kotlincalendar.proto.auth.v1.GrpcAuthApiClient
 import com.kotlincalendar.proto.calendar.v1.GrpcEventApiClient
 import kotlinx.datetime.TimeZone
@@ -74,6 +75,7 @@ val appModule =
         single<Clock> { Clock.System }
         single<TimeZone> { TimeZone.currentSystemDefault() }
         viewModelOf(::CalendarViewModel)
+        viewModel { ProfileViewModel(get(), get()) }
         viewModel { params -> EventCreateViewModel(params.get(), get(), get(), get(), params.getOrNull<String>()) }
         viewModel { params -> EventDetailViewModel(params.get(), get(), get()) }
     }
