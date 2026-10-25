@@ -41,4 +41,15 @@ class EventDateTimeFormatterTest {
             formatEventRange(start, end, seoul),
         )
     }
+
+    @Test
+    fun formatEventRange_acrossYearBoundary_showsFullEndWithNewYear() {
+        val start = Instant.parse("2026-12-31T13:00:00Z")
+        val end = Instant.parse("2026-12-31T15:30:00Z")
+
+        assertEquals(
+            "2026년 12월 31일 (목) 22:00 – 2027년 1월 1일 (금) 00:30",
+            formatEventRange(start, end, seoul),
+        )
+    }
 }

@@ -49,13 +49,12 @@ fun formatEventRange(
     end: Instant,
     timeZone: TimeZone,
 ): String {
-    val startLocal = start.toLocalDateTime(timeZone)
     val endLocal = end.toLocalDateTime(timeZone)
     val endText =
-        if (startLocal.date == endLocal.date) {
+        if (start.toLocalDateTime(timeZone).date == endLocal.date) {
             endLocal.format(timeOnlyFormat)
         } else {
-            endLocal.format(koreanDateTimeFormat)
+            formatEventDateTime(end, timeZone)
         }
-    return "${startLocal.format(koreanDateTimeFormat)} – $endText"
+    return "${formatEventDateTime(start, timeZone)} – $endText"
 }
