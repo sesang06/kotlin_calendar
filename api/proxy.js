@@ -39,9 +39,9 @@ async function handler(req, res) {
     return res.status(503).json({ error: 'Service Unavailable', message: 'Backend is not configured' });
   }
 
-  const base = new URL(backendUrl);
-  if (base.protocol !== 'https:') {
-    console.error('API Proxy: BACKEND_API_URL must use https');
+  const base = URL.canParse(backendUrl) ? new URL(backendUrl) : null;
+  if (base?.protocol !== 'https:') {
+    console.error('API Proxy: BACKEND_API_URL must be a valid https URL');
     return res.status(503).json({ error: 'Service Unavailable', message: 'Backend is misconfigured' });
   }
 
