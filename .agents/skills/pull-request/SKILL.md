@@ -58,6 +58,8 @@ PR을 연 **작성 에이전트는 자기 PR을 리뷰하지 않는다.** PR마�
 - 🟡 Minor / 🔵 Nit는 판단해서 반영. 반영하지 않으면 한 줄로 이유를 남긴다.
 - 반영은 같은 worktree에서 **새 커밋**으로 (`fix(server): address review — ...`). 리뷰 후 force-push 금지.
 - 반영 후 1단계 검증을 다시 돌리고, Blocker/Major를 낸 리뷰어 역할만 다시 리뷰를 요청한다.
+- 여러 PR의 리뷰 반영은 PR(=worktree)마다 작성 에이전트를 따로 띄워 병렬로 한다 (`feature-worktree`의 "병렬 실행").
+- stacked PR의 선행 브랜치가 바뀌면 후속 브랜치에는 **merge**로 반영한다 (이미 push했으면 rebase + force-push 금지).
 
 ## 5. 머지 조건
 
@@ -67,3 +69,12 @@ PR을 연 **작성 에이전트는 자기 PR을 리뷰하지 않는다.** PR마�
 - **머지는 사용자가 하거나 사용자가 명시적으로 지시했을 때만.** 기본 방식은 squash merge.
 
 머지 후 `feature-worktree`의 "정리" 단계를 따른다.
+
+## 자주 겪는 문제
+
+| 증상 | 대응 |
+|---|---|
+| `./gradlew … \| grep …` 결과가 성공처럼 보임 | 파이프의 종료 코드는 grep 것이다. `$?`를 직접 보거나 `server/build/test-results/test/*.xml`의 `failures`를 확인 |
+| `gh pr edit` 가 "Projects (classic)" GraphQL 오류로 실패 | `gh api -X PATCH repos/{owner}/{repo}/pulls/<n> -F body=@<file>` 로 본문 수정 |
+| Windows에서 Python으로 YAML 검사 시 `cp949` 디코드 오류 | `open(path, encoding="utf-8")` |
+| 앞 명령이 실패했는데 `&&` 뒤 커밋이 빠진 채 push됨 | push 전에 `git log --oneline -3`으로 커밋이 있는지 확인 |
