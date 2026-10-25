@@ -9,6 +9,7 @@ import com.kotlincalendar.client.domain.model.Event
 import com.kotlincalendar.client.domain.repository.EventRepository
 import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import kotlinx.datetime.LocalDate
 import kotlin.time.Instant
@@ -25,6 +26,23 @@ class EventRepositoryImpl(
                 .listEvents(
                     ListEventsRequest(
                         date = date.toString(),
+                        time_zone = timeZone ?: "",
+                    ),
+                ).events
+                .map { it.toDomain() }
+        }
+
+    override suspend fun getEventsInRange(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        timeZone: String?,
+    ): Result<List<Event>> =
+        runCatchingCancellable {
+            remote
+                .listEventsInRange(
+                    ListEventsInRangeRequest(
+                        start_date = startDate.toString(),
+                        end_date = endDate.toString(),
                         time_zone = timeZone ?: "",
                     ),
                 ).events

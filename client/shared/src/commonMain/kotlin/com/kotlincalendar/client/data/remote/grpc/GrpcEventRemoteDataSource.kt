@@ -8,6 +8,7 @@ import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
 import com.kotlincalendar.proto.calendar.v1.EventApiClient
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
 import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
@@ -21,6 +22,9 @@ class GrpcEventRemoteDataSource(
 ) : EventRemoteDataSource {
     override suspend fun listEvents(request: ListEventsRequest): ListEventsResponse =
         authSession.withAuthRetry { token -> api.ListEvents().withBearer(token).execute(request) }
+
+    override suspend fun listEventsInRange(request: ListEventsInRangeRequest): ListEventsResponse =
+        authSession.withAuthRetry { token -> api.ListEventsInRange().withBearer(token).execute(request) }
 
     override suspend fun getEvent(request: GetEventRequest): ProtoEvent =
         authSession.withAuthRetry { token -> api.GetEvent().withBearer(token).execute(request) }

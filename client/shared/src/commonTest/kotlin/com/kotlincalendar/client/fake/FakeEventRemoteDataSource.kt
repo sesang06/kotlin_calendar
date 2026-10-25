@@ -5,6 +5,7 @@ import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
 import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
@@ -18,6 +19,8 @@ class FakeEventRemoteDataSource : EventRemoteDataSource {
     var deleteEventResponse: DeleteEventResponse = DeleteEventResponse()
 
     val receivedListRequests = mutableListOf<ListEventsRequest>()
+    var listEventsInRangeResponse: ListEventsResponse = ListEventsResponse()
+    val receivedRangeRequests = mutableListOf<ListEventsInRangeRequest>()
     val receivedGetRequests = mutableListOf<GetEventRequest>()
     val receivedCreateRequests = mutableListOf<CreateEventRequest>()
     val receivedUpdateRequests = mutableListOf<UpdateEventRequest>()
@@ -29,6 +32,12 @@ class FakeEventRemoteDataSource : EventRemoteDataSource {
         shouldThrow?.let { throw it }
         receivedListRequests += request
         return listEventsResponse
+    }
+
+    override suspend fun listEventsInRange(request: ListEventsInRangeRequest): ListEventsResponse {
+        shouldThrow?.let { throw it }
+        receivedRangeRequests += request
+        return listEventsInRangeResponse
     }
 
     override suspend fun getEvent(request: GetEventRequest): ProtoEvent {

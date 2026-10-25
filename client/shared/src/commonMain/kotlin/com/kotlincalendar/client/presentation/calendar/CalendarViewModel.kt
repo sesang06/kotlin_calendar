@@ -32,9 +32,11 @@ class CalendarViewModel(
     val effects: Flow<CalendarEffect> = _effects.receiveAsFlow()
 
     private var loadJob: Job? = null
+    private var monthJob: Job? = null
 
     init {
         loadEvents()
+        loadMonth()
     }
 
     fun onAction(action: CalendarAction) {
@@ -45,7 +47,10 @@ class CalendarViewModel(
             is CalendarAction.SelectDate -> selectDate(action.date)
             is CalendarAction.OpenEvent -> sendEffect(CalendarEffect.NavigateToEvent(action.id))
             CalendarAction.CreateEvent -> sendEffect(CalendarEffect.NavigateToCreateEvent(_state.value.selectedDate))
-            CalendarAction.Refresh, CalendarAction.Retry -> loadEvents()
+            CalendarAction.Refresh, CalendarAction.Retry -> {
+                loadEvents()
+                loadMonth()
+            }
         }
     }
 
@@ -57,8 +62,26 @@ class CalendarViewModel(
     }
 
     private fun selectDate(date: LocalDate) {
+        val previousMonth = _state.value.visibleMonth
         _state.update { it.copy(selectedDate = date, visibleMonth = firstDayOfMonth(date)) }
         loadEvents()
+        if (firstDayOfMonth(date) != previousMonth) loadMonth()
+    }
+
+    /** 보이는 달 그리드 전체의 일정을 불러와 일정이 있는 날을 표시한다. 실패해도 화면 오류로 보지 않는다. */
+    private fun loadMonth() {
+        val range = monthGridRange(_state.value.visibleMonth)
+        monthJob?.cancel()
+        monthJob =
+            viewModelScope.launch {
+                eventRepository
+                    .getEventsInRange(range.start, range.endInclusive, timeZone.id)
+                    .onSuccess { events ->
+                        _state.update { it.copy(eventDays = eventDays(events, timeZone, range)) }
+                    }.onFailure {
+                        _state.update { it.copy(eventDays = emptySet()) }
+                    }
+            }
     }
 
     private fun sendEffect(effect: CalendarEffect) {

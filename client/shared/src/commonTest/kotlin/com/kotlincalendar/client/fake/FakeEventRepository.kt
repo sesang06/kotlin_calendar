@@ -7,6 +7,8 @@ import kotlin.time.Instant
 
 class FakeEventRepository : EventRepository {
     var eventsResult: Result<List<Event>> = Result.success(emptyList())
+    var rangeEventsResult: Result<List<Event>> = Result.success(emptyList())
+    val requestedRanges = mutableListOf<Pair<LocalDate, LocalDate>>()
     var getEventResult: Result<Event> = Result.failure(NoSuchElementException("Not found"))
     var createEventResult: Result<Event> = Result.failure(IllegalStateException("Failed"))
     var updateEventResult: Result<Event> = Result.failure(IllegalStateException("Failed"))
@@ -31,6 +33,15 @@ class FakeEventRepository : EventRepository {
     ): Result<List<Event>> {
         requestedDates += date
         return eventsResult
+    }
+
+    override suspend fun getEventsInRange(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        timeZone: String?,
+    ): Result<List<Event>> {
+        requestedRanges += startDate to endDate
+        return rangeEventsResult
     }
 
     override suspend fun getEvent(id: String): Result<Event> {

@@ -127,4 +127,21 @@ class EventRepositoryImplTest {
             assertEquals(startTime.toWireInstant(), req.start_time)
             assertEquals("memo", req.description)
         }
+
+    @Test
+    fun getEventsInRange_sendsDatesAndTimeZone() =
+        runTest {
+            fakeRemote.listEventsInRangeResponse =
+                ListEventsResponse(
+                    events = listOf(ProtoEvent(id = "r1", start_time = startTime.toWireInstant(), end_time = endTime.toWireInstant())),
+                )
+
+            val result = repository.getEventsInRange(LocalDate(2026, 10, 1), LocalDate(2026, 10, 31), "Asia/Seoul")
+
+            assertEquals(listOf("r1"), result.getOrThrow().map { it.id })
+            val req = fakeRemote.receivedRangeRequests.single()
+            assertEquals("2026-10-01", req.start_date)
+            assertEquals("2026-10-31", req.end_date)
+            assertEquals("Asia/Seoul", req.time_zone)
+        }
 }

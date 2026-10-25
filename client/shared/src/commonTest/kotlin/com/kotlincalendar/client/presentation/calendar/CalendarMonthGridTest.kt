@@ -1,11 +1,14 @@
 package com.kotlincalendar.client.presentation.calendar
 
+import com.kotlincalendar.client.domain.model.Event
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
+import kotlin.time.Instant
 
 class CalendarMonthGridTest {
     @Test
@@ -62,5 +65,43 @@ class CalendarMonthGridTest {
         val days = buildMonthGrid(LocalDate(2024, 2, 1)).flatten().filter { it.isInCurrentMonth }
 
         assertEquals((1..29).map { LocalDate(2024, 2, it) }, days.map { it.date })
+    }
+
+    @Test
+    fun monthGridRange_october2026_coversPaddedWeeks() {
+        val range = monthGridRange(LocalDate(2026, 10, 1))
+
+        assertEquals(LocalDate(2026, 9, 27), range.start)
+        assertEquals(LocalDate(2026, 10, 31), range.endInclusive)
+    }
+
+    @Test
+    fun eventDays_multiDayEvent_marksEachDayButNotEndAtMidnight() {
+        val event =
+            Event(
+                id = "e",
+                title = "여행",
+                start = Instant.parse("2026-10-10T09:00:00Z"),
+                end = Instant.parse("2026-10-13T00:00:00Z"),
+            )
+
+        val days = eventDays(listOf(event), TimeZone.UTC, LocalDate(2026, 9, 27)..LocalDate(2026, 10, 31))
+
+        assertEquals(setOf(LocalDate(2026, 10, 10), LocalDate(2026, 10, 11), LocalDate(2026, 10, 12)), days)
+    }
+
+    @Test
+    fun eventDays_clipsToRange() {
+        val event =
+            Event(
+                id = "e",
+                title = "긴 일정",
+                start = Instant.parse("2026-09-20T00:00:00Z"),
+                end = Instant.parse("2026-09-29T00:00:00Z"),
+            )
+
+        val days = eventDays(listOf(event), TimeZone.UTC, LocalDate(2026, 9, 27)..LocalDate(2026, 10, 31))
+
+        assertEquals(setOf(LocalDate(2026, 9, 27), LocalDate(2026, 9, 28)), days)
     }
 }
