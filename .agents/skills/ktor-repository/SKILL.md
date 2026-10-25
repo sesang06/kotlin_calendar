@@ -84,7 +84,7 @@ class ExposedEventRepository(private val database: Database) : EventRepository {
 5. 없음은 `null` / 빈 리스트 / `Boolean`으로 표현. `NotFoundException`은 Service 몫.
 6. 모든 메서드는 `suspend` + `newSuspendedTransaction(Dispatchers.IO, database)`.
 7. 컬럼 규칙(시각=`long`, `varchar` 길이 명시, 예약어 회피)은 `server-database`의 "스키마 규칙".
-8. 새 테이블은 `plugins/Database.kt`의 `configureDatabase()`의 `SchemaUtils.create(...)`에 추가.
+8. 새 테이블·컬럼은 **Flyway 마이그레이션**(`db/migration/postgresql`과 `mysql` 양쪽, 같은 버전)으로 추가하고, Exposed `Table` 객체는 그 스키마에 맞춘다. `SchemaUtils.create`는 쓰지 않는다 (`server-database`의 "Flyway 마이그레이션").
 
 ## 테스트
 

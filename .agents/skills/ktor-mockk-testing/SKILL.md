@@ -143,8 +143,9 @@ class EventGrpcHandlerTest {
 
 ```kotlin
 class ExposedEventRepositoryTest {
-    private val provider = H2DatabaseProvider("jdbc:h2:mem:${UUID.randomUUID()};DB_CLOSE_DELAY=-1")
-    private val database = provider.connect().also { transaction(it) { SchemaUtils.create(EventTable) } }
+    // 운영과 같은 스키마를 쓰기 위해 Flyway 마이그레이션을 적용한다 (SchemaUtils.create 금지).
+    private val provider = H2DatabaseProvider("jdbc:h2:mem:${UUID.randomUUID()};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1")
+    private val database = provider.connect().also { DatabaseMigrator(provider.dataSource(), DatabaseVendor.POSTGRESQL).migrate() }
     private val repo = ExposedEventRepository(database)
 
     @Test
