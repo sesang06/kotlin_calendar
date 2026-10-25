@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -57,6 +56,8 @@ import kotlinx.datetime.number
 import org.koin.compose.viewmodel.koinViewModel
 
 private val WideLayoutMinWidth = 720.dp
+private val DayCellHeight = 48.dp
+private val DayCircleSize = 40.dp
 private val WeekdayLabels = listOf("일", "월", "화", "수", "목", "금", "토")
 
 /**
@@ -289,32 +290,39 @@ private fun DayCell(
             else -> baseColor
         }
 
+    // 칸 높이와 원 크기를 고정한다. 칸 너비에 맞춘 정사각형(aspectRatio)이면 넓은 화면에서 원이 칸만큼 커진다.
     Box(
         modifier =
             modifier
-                .aspectRatio(1f)
-                .padding(3.dp)
-                .clip(CircleShape)
-                .background(background)
+                .height(DayCellHeight)
                 .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(
-            text = day.date.day.toString(),
-            color = textColor,
-            fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
-            style = MaterialTheme.typography.bodyMedium,
-        )
-        if (hasEvents) {
-            Box(
-                modifier =
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(bottom = 5.dp)
-                        .size(5.dp)
-                        .clip(CircleShape)
-                        .background(if (isSelected) colors.onPrimary else colors.primary),
+        Box(
+            modifier =
+                Modifier
+                    .size(DayCircleSize)
+                    .clip(CircleShape)
+                    .background(background),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = day.date.day.toString(),
+                color = textColor,
+                fontWeight = if (isToday || isSelected) FontWeight.Bold else FontWeight.Normal,
+                style = MaterialTheme.typography.bodyMedium,
             )
+            if (hasEvents) {
+                Box(
+                    modifier =
+                        Modifier
+                            .align(Alignment.BottomCenter)
+                            .padding(bottom = 4.dp)
+                            .size(5.dp)
+                            .clip(CircleShape)
+                            .background(if (isSelected) colors.onPrimary else colors.primary),
+                )
+            }
         }
     }
 }
