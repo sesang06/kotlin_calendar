@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.kotlincalendar.client.presentation.theme.WeekendColors
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.number
 import org.koin.compose.viewmodel.koinViewModel
 
@@ -114,8 +115,18 @@ fun CalendarScreen(
             val isWide = maxWidth >= WideLayoutMinWidth
             Column(modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp)) {
                 AppHeader(onLogout = onLogout)
+                Spacer(modifier = Modifier.height(8.dp))
+                ViewModeSelector(selected = state.viewMode, onSelect = { onAction(CalendarAction.ChangeViewMode(it)) })
                 Spacer(modifier = Modifier.height(12.dp))
-                if (isWide) {
+                if (state.viewMode != CalendarViewMode.MONTH) {
+                    PeriodHeader(title = periodTitle(state), onAction = onAction)
+                    Spacer(modifier = Modifier.height(12.dp))
+                    if (state.viewMode == CalendarViewMode.WEEK) {
+                        WeekList(state = state, onAction = onAction, modifier = Modifier.weight(1f))
+                    } else {
+                        EventList(state = state, onAction = onAction, modifier = Modifier.weight(1f))
+                    }
+                } else if (isWide) {
                     Row(modifier = Modifier.fillMaxSize()) {
                         MonthCalendar(
                             state = state,
@@ -440,3 +451,192 @@ private fun weekdayColor(index: Int): Color? =
         DAYS_IN_WEEK - 1 -> WeekendColors.Saturday
         else -> null
     }
+
+@Composable
+private fun ViewModeSelector(
+    selected: CalendarViewMode,
+    onSelect: (CalendarViewMode) -> Unit,
+) {
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainer,
+    ) {
+        Row(modifier = Modifier.padding(4.dp)) {
+            CalendarViewMode.entries.forEach { mode ->
+                val isSelected = mode == selected
+                Box(
+                    modifier =
+                        Modifier
+                            .clip(CircleShape)
+                            .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
+                            .clickable { onSelect(mode) }
+                            .padding(horizontal = 20.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = mode.label,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun PeriodHeader(
+    title: String,
+    onAction: (CalendarAction) -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            modifier = Modifier.weight(1f).padding(start = 4.dp),
+        )
+        IconButton(onClick = { onAction(CalendarAction.PreviousPeriod) }) {
+            Text("‹", style = MaterialTheme.typography.headlineSmall)
+        }
+        IconButton(onClick = { onAction(CalendarAction.NextPeriod) }) {
+            Text("›", style = MaterialTheme.typography.headlineSmall)
+        }
+        FilledTonalButton(onClick = { onAction(CalendarAction.GoToToday) }) {
+            Text("오늘")
+        }
+    }
+}
+
+internal fun periodTitle(state: CalendarUiState): String =
+    when (state.viewMode) {
+        CalendarViewMode.MONTH -> "${state.visibleMonth.year}년 ${state.visibleMonth.month.number}월"
+        CalendarViewMode.WEEK -> {
+            val range = weekRange(state.selectedDate)
+            val start = range.start
+            val end = range.endInclusive
+            if (start.month == end.month) {
+                "${start.month.number}월 ${start.day}일 – ${end.day}일"
+            } else {
+                "${start.month.number}월 ${start.day}일 – ${end.month.number}월 ${end.day}일"
+            }
+        }
+        CalendarViewMode.DAY -> {
+            val date = state.selectedDate
+            "${date.month.number}월 ${date.day}일 (${WeekdayLabels[date.dayOfWeek.isoDayNumber % DAYS_IN_WEEK]})"
+        }
+    }
+
+@Composable
+private fun WeekList(
+    state: CalendarUiState,
+    onAction: (CalendarAction) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LazyColumn(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        contentPadding = PaddingValues(bottom = 88.dp),
+    ) {
+        items(state.weekDays, key = { it.date.toString() }) { day ->
+            WeekDayRow(
+                day = day,
+                isToday = day.date == state.today,
+                isSelected = day.date == state.selectedDate,
+                onSelect = { onAction(CalendarAction.SelectDate(day.date)) },
+                onOpenEvent = { onAction(CalendarAction.OpenEvent(it)) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun WeekDayRow(
+    day: CalendarWeekDay,
+    isToday: Boolean,
+    isSelected: Boolean,
+    onSelect: () -> Unit,
+    onOpenEvent: (String) -> Unit,
+) {
+    val colors = MaterialTheme.colorScheme
+    Surface(
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clip(MaterialTheme.shapes.medium)
+                .clickable(onClick = onSelect),
+        shape = MaterialTheme.shapes.medium,
+        color = if (isSelected) colors.primaryContainer else colors.surfaceContainerLowest,
+        tonalElevation = 1.dp,
+    ) {
+        Row(modifier = Modifier.padding(12.dp)) {
+            Column(
+                modifier = Modifier.width(48.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                val weekdayIndex = day.date.dayOfWeek.isoDayNumber % DAYS_IN_WEEK
+                Text(
+                    text = WeekdayLabels[weekdayIndex],
+                    style = MaterialTheme.typography.labelMedium,
+                    color = weekdayColor(weekdayIndex) ?: colors.onSurfaceVariant,
+                )
+                Text(
+                    text = day.date.day.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal,
+                    color = if (isToday) colors.primary else colors.onSurface,
+                )
+            }
+            Spacer(modifier = Modifier.width(12.dp))
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                if (day.events.isEmpty()) {
+                    Text(
+                        text = "일정 없음",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = colors.onSurfaceVariant,
+                        modifier = Modifier.padding(vertical = 8.dp),
+                    )
+                }
+                day.events.forEach { event ->
+                    Row(
+                        modifier =
+                            Modifier
+                                .fillMaxWidth()
+                                .clip(MaterialTheme.shapes.small)
+                                .clickable { onOpenEvent(event.id) }
+                                .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Box(
+                            modifier =
+                                Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(colors.primary),
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = event.title,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = event.timeRange,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

@@ -78,3 +78,31 @@ fun eventDays(
     }
     return days
 }
+
+/** [date]가 속한 주(일요일 시작)의 첫날~마지막 날. */
+fun weekRange(date: LocalDate): ClosedRange<LocalDate> {
+    val offset = (date.dayOfWeek.isoDayNumber - CalendarWeekStart.isoDayNumber + DAYS_IN_WEEK) % DAYS_IN_WEEK
+    val start = date.minus(offset, DateTimeUnit.DAY)
+    return start..start.plus(DAYS_IN_WEEK - 1, DateTimeUnit.DAY)
+}
+
+/** [range]의 날마다 그날과 겹치는 일정 (시작 시각 순). */
+fun groupEventsByDay(
+    events: List<Event>,
+    timeZone: TimeZone,
+    range: ClosedRange<LocalDate>,
+): List<CalendarWeekDay> {
+    val sorted = events.sortedBy { it.start }
+    val days = mutableListOf<CalendarWeekDay>()
+    var date = range.start
+    while (date <= range.endInclusive) {
+        val day = date
+        val items =
+            sorted
+                .filter { day in eventDays(listOf(it), timeZone, day..day) }
+                .map { it.toCalendarEventItem(day, timeZone) }
+        days += CalendarWeekDay(day, items)
+        date = date.plus(1, DateTimeUnit.DAY)
+    }
+    return days
+}

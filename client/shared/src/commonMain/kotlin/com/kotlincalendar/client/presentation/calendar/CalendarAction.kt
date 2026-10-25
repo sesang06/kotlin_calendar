@@ -9,6 +9,15 @@ sealed interface CalendarAction {
 
     data object GoToToday : CalendarAction
 
+    /** 현재 보기 단위(월·주·일)만큼 앞뒤로 이동한다. */
+    data object PreviousPeriod : CalendarAction
+
+    data object NextPeriod : CalendarAction
+
+    data class ChangeViewMode(
+        val mode: CalendarViewMode,
+    ) : CalendarAction
+
     data class SelectDate(
         val date: LocalDate,
     ) : CalendarAction
