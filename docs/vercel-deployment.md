@@ -27,7 +27,7 @@
    - Root Directory: `./` (프로젝트 루트)
 
 2. **빌드 실행**
-   - Vercel의 빌드 환경에서 JDK 21(없으면 Amazon Corretto 21 설치, 실패 시 빌드 중단) 및 Gradle을 통해 Wasm 브라우저 번들을 빌드하고 정적 자산과 서버리스 함수를 배포합니다.
+   - Vercel의 빌드 환경에서 JDK 21(기본 이미지의 Java 11처럼 21이 아니면 Amazon Corretto 21 설치, 실패 시 빌드 중단) 및 Gradle을 통해 Wasm 브라우저 번들을 빌드하고 정적 자산과 서버리스 함수를 배포합니다.
 
 ## 배포 시점
 
