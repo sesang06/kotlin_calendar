@@ -2,7 +2,6 @@ package com.kotlincalendar.client.data.mapper
 
 import com.kotlincalendar.client.domain.model.Event
 import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
-import com.squareup.wire.ofEpochSecond
 import kotlin.time.Instant
 import com.kotlincalendar.proto.calendar.v1.Event as ProtoEvent
 
@@ -17,10 +16,9 @@ fun ProtoEvent.toDomain(): Event =
         ownerUserId = owner_user_id,
     )
 
-// Wire 공통 API(getEpochSecond/getNano, top-level ofEpochSecond)는 JVM에서도 java.time.Instant에 그대로 대응한다.
 fun com.squareup.wire.Instant.toKotlinInstant(): Instant = Instant.fromEpochSeconds(getEpochSecond(), getNano().toLong())
 
-fun Instant.toWireInstant(): com.squareup.wire.Instant = ofEpochSecond(epochSeconds, nanosecondsOfSecond.toLong())
+fun Instant.toWireInstant(): com.squareup.wire.Instant = com.squareup.wire.ofEpochSecond(epochSeconds, nanosecondsOfSecond.toLong())
 
 fun toCreateEventRequest(
     title: String,

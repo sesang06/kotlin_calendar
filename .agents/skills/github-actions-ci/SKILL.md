@@ -14,7 +14,7 @@ description: kotlin_calendar의 GitHub Actions CI 규칙. .github/workflows/ci.y
 | `lint` | ubuntu | `./gradlew ktlintCheck --continue` | `ktlint` 스킬 |
 | `server-test` | ubuntu | `./gradlew :server:test` | H2 + MockK. Supabase 접속 안 함 |
 | `migration-test` | ubuntu + 서비스 컨테이너 `postgres:16` | `./gradlew :server:test --tests "*MigrationIntegrationTest"` | `MIGRATION_TEST_POSTGRES_URL`로 실제 DB에 Flyway 적용 (`server-database`) |
-| `client-test` | ubuntu | `:client:shared:desktopTest`, `testDebugUnitTest`, `wasmJsNodeTest`, desktop 컴파일, Android `assembleDebug`, web `wasmJsBrowserDistribution` | Android SDK는 러너에 기본 설치 |
+| `client-test` | ubuntu | `:client:shared:desktopTest`, `testDebugUnitTest`, `wasmJsBrowserTest`(헤드리스 Chrome — skiko Wasm은 Node 미지원), desktop 컴파일, Android `assembleDebug`, web `wasmJsBrowserDistribution` | Android SDK는 러너에 기본 설치 |
 | `client-ios-test` | macos | `:client:shared:iosSimulatorArm64Test` | iOS는 macOS에서만 빌드 가능 |
 
 공통 셋업: `actions/checkout@v4` → `actions/setup-java@v4` (temurin 21) → `gradle/actions/setup-gradle@v4` (Gradle 캐시 자동).

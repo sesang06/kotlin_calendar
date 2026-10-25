@@ -32,6 +32,8 @@ import org.junit.jupiter.api.BeforeEach
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class AuthGrpcHandlerTest {
@@ -97,9 +99,9 @@ class AuthGrpcHandlerTest {
             val tokens =
                 AuthTokens(
                     accessToken = "acc-token",
-                    accessTokenExpiresAtEpochMillis = 1000L,
+                    accessTokenExpiresAt = fixedNow + 15.minutes,
                     refreshToken = "ref-token",
-                    refreshTokenExpiresAtEpochMillis = 2000L,
+                    refreshTokenExpiresAt = fixedNow + 30.days,
                 )
             coEvery { userService.signUp(any()) } returns AuthResult(user, tokens)
 
@@ -152,9 +154,9 @@ class AuthGrpcHandlerTest {
             val tokens =
                 AuthTokens(
                     accessToken = "acc-token",
-                    accessTokenExpiresAtEpochMillis = 1000L,
+                    accessTokenExpiresAt = fixedNow + 15.minutes,
                     refreshToken = "ref-token",
-                    refreshTokenExpiresAtEpochMillis = 2000L,
+                    refreshTokenExpiresAt = fixedNow + 30.days,
                 )
             coEvery { userService.login(any()) } returns AuthResult(user, tokens)
 
@@ -197,9 +199,9 @@ class AuthGrpcHandlerTest {
             val tokens =
                 AuthTokens(
                     accessToken = "new-acc",
-                    accessTokenExpiresAtEpochMillis = 3000L,
+                    accessTokenExpiresAt = fixedNow + 15.minutes,
                     refreshToken = "new-ref",
-                    refreshTokenExpiresAtEpochMillis = 4000L,
+                    refreshTokenExpiresAt = fixedNow + 30.days,
                 )
             coEvery { userService.refreshToken(any()) } returns tokens
 

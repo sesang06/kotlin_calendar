@@ -24,6 +24,8 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.time.Clock
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class UserServiceTest {
@@ -65,9 +67,9 @@ class UserServiceTest {
             coEvery { userRepository.save(capture(savedUser)) } answers { savedUser.captured }
 
             every { tokenProvider.generateAccessToken("user-123", fixedNow) } returns
-                TokenResult("access-token-1", fixedNow.toEpochMilliseconds() + 900_000)
+                TokenResult("access-token-1", fixedNow + 15.minutes)
             every { tokenProvider.generateRefreshToken("user-123", fixedNow) } returns
-                TokenResult("refresh-token-1", fixedNow.toEpochMilliseconds() + 2_592_000_000)
+                TokenResult("refresh-token-1", fixedNow + 30.days)
 
             val savedRefreshToken = slot<RefreshTokenRecord>()
             coEvery { refreshTokenRepository.save(capture(savedRefreshToken)) } answers { savedRefreshToken.captured }
@@ -157,9 +159,9 @@ class UserServiceTest {
             every { passwordHasher.verify("password123", "hashed_pw") } returns true
 
             every { tokenProvider.generateAccessToken("user-123", fixedNow) } returns
-                TokenResult("new-access-token", fixedNow.toEpochMilliseconds() + 900_000)
+                TokenResult("new-access-token", fixedNow + 15.minutes)
             every { tokenProvider.generateRefreshToken("user-123", fixedNow) } returns
-                TokenResult("new-refresh-token", fixedNow.toEpochMilliseconds() + 2_592_000_000)
+                TokenResult("new-refresh-token", fixedNow + 30.days)
 
             val savedRefreshToken = slot<RefreshTokenRecord>()
             coEvery { refreshTokenRepository.save(capture(savedRefreshToken)) } answers { savedRefreshToken.captured }
@@ -231,9 +233,9 @@ class UserServiceTest {
             coEvery { userRepository.findById("user-123") } returns userRecord
 
             every { tokenProvider.generateAccessToken("user-123", fixedNow) } returns
-                TokenResult("new-access-token", fixedNow.toEpochMilliseconds() + 900_000)
+                TokenResult("new-access-token", fixedNow + 15.minutes)
             every { tokenProvider.generateRefreshToken("user-123", fixedNow) } returns
-                TokenResult("new-refresh-token", fixedNow.toEpochMilliseconds() + 2_592_000_000)
+                TokenResult("new-refresh-token", fixedNow + 30.days)
 
             val savedRefreshToken = slot<RefreshTokenRecord>()
             coEvery { refreshTokenRepository.save(capture(savedRefreshToken)) } answers { savedRefreshToken.captured }
