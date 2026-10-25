@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package auth.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option java_multiple_files = true;
 option java_package = "com.kotlincalendar.proto.auth.v1";
 
@@ -11,16 +13,16 @@ message User {
   // 소문자로 정규화된 이메일.
   string email = 2;
   string display_name = 3;
-  int64 created_at_epoch_millis = 4;
+  google.protobuf.Timestamp created_at = 4;
 }
 
 // access token: 짧은 수명(서명 토큰, API 호출에 사용).
 // refresh token: 긴 수명(불투명 문자열, 재발급에만 사용, 사용 시 교체됨).
 message AuthTokens {
   string access_token = 1;
-  int64 access_token_expires_at_epoch_millis = 2;
+  google.protobuf.Timestamp access_token_expires_at = 2;
   string refresh_token = 3;
-  int64 refresh_token_expires_at_epoch_millis = 4;
+  google.protobuf.Timestamp refresh_token_expires_at = 4;
 }
 
 message SignUpRequest {

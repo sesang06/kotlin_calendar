@@ -1,5 +1,6 @@
 package com.kotlincalendar.server.user.handler
 
+import com.google.protobuf.Timestamp
 import com.kotlincalendar.proto.auth.v1.LoginRequest
 import com.kotlincalendar.proto.auth.v1.LoginResponse
 import com.kotlincalendar.proto.auth.v1.LogoutRequest
@@ -14,8 +15,18 @@ import com.kotlincalendar.server.user.domain.LogoutCommand
 import com.kotlincalendar.server.user.domain.RefreshTokenCommand
 import com.kotlincalendar.server.user.domain.SignUpCommand
 import com.kotlincalendar.server.user.domain.User
+import kotlin.time.Instant
 import com.kotlincalendar.proto.auth.v1.AuthTokens as AuthTokensMessage
 import com.kotlincalendar.proto.auth.v1.User as UserMessage
+
+fun Instant.toTimestamp(): Timestamp =
+    Timestamp
+        .newBuilder()
+        .setSeconds(epochSeconds)
+        .setNanos(nanosecondsOfSecond)
+        .build()
+
+fun Timestamp.toInstant(): Instant = Instant.fromEpochSeconds(seconds, nanos)
 
 fun User.toProto(): UserMessage =
     UserMessage
@@ -23,16 +34,16 @@ fun User.toProto(): UserMessage =
         .setId(id)
         .setEmail(email)
         .setDisplayName(displayName)
-        .setCreatedAtEpochMillis(createdAt.toEpochMilliseconds())
+        .setCreatedAt(createdAt.toTimestamp())
         .build()
 
 fun AuthTokens.toProto(): AuthTokensMessage =
     AuthTokensMessage
         .newBuilder()
         .setAccessToken(accessToken)
-        .setAccessTokenExpiresAtEpochMillis(accessTokenExpiresAtEpochMillis)
+        .setAccessTokenExpiresAt(accessTokenExpiresAt.toTimestamp())
         .setRefreshToken(refreshToken)
-        .setRefreshTokenExpiresAtEpochMillis(refreshTokenExpiresAtEpochMillis)
+        .setRefreshTokenExpiresAt(refreshTokenExpiresAt.toTimestamp())
         .build()
 
 fun AuthResult.toSignUpResponse(): SignUpResponse =

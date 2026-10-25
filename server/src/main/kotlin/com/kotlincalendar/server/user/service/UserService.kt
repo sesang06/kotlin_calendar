@@ -59,7 +59,7 @@ class UserService(
             RefreshTokenRecord(
                 token = refreshToken.token,
                 userId = userId,
-                expiresAt = refreshToken.expiresAtEpochMillis,
+                expiresAt = refreshToken.expiresAt.toEpochMilliseconds(),
                 createdAt = now.toEpochMilliseconds(),
                 revoked = false,
             ),
@@ -70,9 +70,9 @@ class UserService(
             tokens =
                 AuthTokens(
                     accessToken = accessToken.token,
-                    accessTokenExpiresAtEpochMillis = accessToken.expiresAtEpochMillis,
+                    accessTokenExpiresAt = accessToken.expiresAt,
                     refreshToken = refreshToken.token,
-                    refreshTokenExpiresAtEpochMillis = refreshToken.expiresAtEpochMillis,
+                    refreshTokenExpiresAt = refreshToken.expiresAt,
                 ),
         )
     }
@@ -98,7 +98,7 @@ class UserService(
             RefreshTokenRecord(
                 token = refreshToken.token,
                 userId = userRecord.id,
-                expiresAt = refreshToken.expiresAtEpochMillis,
+                expiresAt = refreshToken.expiresAt.toEpochMilliseconds(),
                 createdAt = now.toEpochMilliseconds(),
                 revoked = false,
             ),
@@ -109,9 +109,9 @@ class UserService(
             tokens =
                 AuthTokens(
                     accessToken = accessToken.token,
-                    accessTokenExpiresAtEpochMillis = accessToken.expiresAtEpochMillis,
+                    accessTokenExpiresAt = accessToken.expiresAt,
                     refreshToken = refreshToken.token,
-                    refreshTokenExpiresAtEpochMillis = refreshToken.expiresAtEpochMillis,
+                    refreshTokenExpiresAt = refreshToken.expiresAt,
                 ),
         )
     }
@@ -142,7 +142,7 @@ class UserService(
             RefreshTokenRecord(
                 token = newRefreshToken.token,
                 userId = userRecord.id,
-                expiresAt = newRefreshToken.expiresAtEpochMillis,
+                expiresAt = newRefreshToken.expiresAt.toEpochMilliseconds(),
                 createdAt = now.toEpochMilliseconds(),
                 revoked = false,
             ),
@@ -150,9 +150,9 @@ class UserService(
 
         return AuthTokens(
             accessToken = accessToken.token,
-            accessTokenExpiresAtEpochMillis = accessToken.expiresAtEpochMillis,
+            accessTokenExpiresAt = accessToken.expiresAt,
             refreshToken = newRefreshToken.token,
-            refreshTokenExpiresAtEpochMillis = newRefreshToken.expiresAtEpochMillis,
+            refreshTokenExpiresAt = newRefreshToken.expiresAt,
         )
     }
 
