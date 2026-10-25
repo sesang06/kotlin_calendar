@@ -31,7 +31,7 @@ kotlin_calendar/
 | 서버 | Ktor. Handler → Service → Repository 단방향 |
 | 메시지 | 전부 `proto/`의 `.proto`로 정의. 서버는 protoc + grpc-kotlin, 클라이언트는 Wire로 생성 |
 | 통신 | gRPC(:50051) 또는 HTTP(:8080, `application/x-protobuf`). 같은 Service를 두 Handler가 노출. 웹은 HTTP 전용 |
-| DB | Supabase(PostgreSQL). `DatabaseProvider` 주입으로 MySQL·H2 교체 가능, Repository는 벤더 중립 Exposed |
+| DB | Supabase(PostgreSQL). `DatabaseProvider` 주입으로 H2 교체 가능, Repository는 Exposed |
 | DI | 서버·클라이언트 모두 Koin |
 | 시간 | `kotlin.time.Instant/Clock`, 날짜는 `kotlinx-datetime`. proto에서는 `google.protobuf.Timestamp` |
 | 테스트 | 서버 JUnit5 + MockK, 클라이언트 commonTest + Fake + Turbine |
@@ -71,7 +71,7 @@ kotlin_calendar/
 | 서버 | `ktor-handler` | HTTP·gRPC Handler, proto↔도메인 매퍼, 상태 코드 |
 | 서버 | `ktor-service` | 비즈니스 로직·검증·트랜잭션 경계 |
 | 서버 | `ktor-repository` | 벤더 중립 Exposed 데이터 접근 |
-| 서버 | `server-database` | Supabase 연결, DatabaseProvider 주입, MySQL 교체, 환경변수 |
+| 서버 | `server-database` | Supabase 연결, DatabaseProvider 주입, 환경변수 |
 | 서버 | `ktor-mockk-testing` | MockK 단위 테스트, testApplication·InProcess gRPC·H2 테스트 |
 
 ## 공통 규칙

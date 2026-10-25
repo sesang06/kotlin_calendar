@@ -1,6 +1,6 @@
 ---
 name: ktor-repository
-description: kotlin_calendar 서버의 Repository 계층 규칙. 데이터 접근 인터페이스 정의, 벤더 중립(Supabase/PostgreSQL·MySQL·H2) Exposed 테이블·구현체 작성, 도메인 모델 매핑, newSuspendedTransaction 처리가 필요할 때 사용. 테이블/쿼리를 추가하거나 고칠 때 사용. DB 연결·교체는 server-database 스킬.
+description: kotlin_calendar 서버의 Repository 계층 규칙. 데이터 접근 인터페이스 정의, Exposed 테이블·구현체 작성, 도메인 모델 매핑, newSuspendedTransaction 처리가 필요할 때 사용. 테이블/쿼리를 추가하거나 고칠 때 사용. DB 연결·설정은 server-database 스킬.
 ---
 
 # Repository 계층
@@ -29,13 +29,13 @@ interface EventRepository {
 ```
 
 ```kotlin
-/** 시각은 벤더 중립을 위해 UTC epoch millis(BIGINT)로 저장한다. */
+/** 시각은 TIMESTAMPTZ(PostgreSQL) 컬럼에 매핑한다. */
 object EventTable : Table("events") {
     val id = varchar("id", 36)
     val title = varchar("title", 200)
-    val startAt = long("start_at")
-    val endAt = long("end_at")
-    val createdAt = long("created_at")
+    val startAt = timestamp("start_at")
+    val endAt = timestamp("end_at")
+    val createdAt = timestamp("created_at")
     override val primaryKey = PrimaryKey(id)
     init { index(isUnique = false, startAt, endAt) }
 }
@@ -43,9 +43,9 @@ object EventTable : Table("events") {
 fun ResultRow.toEvent() = Event(
     id = this[EventTable.id],
     title = this[EventTable.title],
-    start = Instant.fromEpochMilliseconds(this[EventTable.startAt]),
-    end = Instant.fromEpochMilliseconds(this[EventTable.endAt]),
-    createdAt = Instant.fromEpochMilliseconds(this[EventTable.createdAt]),
+    start = this[EventTable.startAt],
+    end = this[EventTable.endAt],
+    createdAt = this[EventTable.createdAt],
 )
 ```
 
@@ -61,7 +61,7 @@ class ExposedEventRepository(private val database: Database) : EventRepository {
 
     override suspend fun existsOverlapping(start: Instant, end: Instant): Boolean = dbQuery {
         EventTable.selectAll()
-            .where { (EventTable.startAt less end.toEpochMilliseconds()) and (EventTable.endAt greater start.toEpochMilliseconds()) }
+            .where { (EventTable.startAt less end) and (EventTable.endAt greater start) }
             .limit(1)
             .any()
     }
@@ -79,12 +79,12 @@ class ExposedEventRepository(private val database: Database) : EventRepository {
 
 1. **인터페이스와 구현을 분리**한다. Service·Koin 바인딩은 인터페이스 타입으로.
 2. 생성자로 `Database`를 받는다. `Database.connect`·드라이버·URL을 Repository에서 직접 다루지 않는다.
-3. **벤더 중립 Exposed DSL만** 사용: `exec("raw sql")`, PostgreSQL 전용 타입(jsonb, array), MySQL 전용 함수 금지.
+3. **Exposed DSL만** 사용: `exec("raw sql")`, 특정 DB 전용 타입(jsonb 등) 금지.
 4. 반환 타입은 **도메인 모델**. `ResultRow`·Exposed 타입이 계층 밖으로 새지 않는다.
 5. 없음은 `null` / 빈 리스트 / `Boolean`으로 표현. `NotFoundException`은 Service 몫.
 6. 모든 메서드는 `suspend` + `newSuspendedTransaction(Dispatchers.IO, database)`.
-7. 컬럼 규칙(시각=`long`, `varchar` 길이 명시, 예약어 회피)은 `server-database`의 "스키마 규칙".
-8. 새 테이블·컬럼은 **Flyway 마이그레이션**(`db/migration/postgresql`과 `mysql` 양쪽, 같은 버전)으로 추가하고, Exposed `Table` 객체는 그 스키마에 맞춘다. `SchemaUtils.create`는 쓰지 않는다 (`server-database`의 "Flyway 마이그레이션").
+7. 컬럼 규칙(시각=`timestamp`, `varchar` 길이 명시, 예약어 회피)은 `server-database`의 "스키마 규칙".
+8. 새 테이블·컬럼은 **Flyway 마이그레이션**(`db/migration/postgresql`)으로 추가하고, Exposed `Table` 객체는 그 스키마에 맞춘다. `SchemaUtils.create`는 쓰지 않는다 (`server-database`의 "Flyway 마이그레이션").
 
 ## 테스트
 

@@ -9,92 +9,73 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
-/** H2 호환 모드로 postgresql/mysql 마이그레이션을 검증한다. 실제 DB 검증은 [DatabaseMigrationIntegrationTest]. */
+/** H2 PostgreSQL 호환 모드로 마이그레이션을 검증한다. 실제 DB 검증은 [DatabaseMigrationIntegrationTest]. */
 class DatabaseMigratorTest {
-    private val cases =
-        listOf(
-            "PostgreSQL" to DatabaseVendor.POSTGRESQL,
-            "MySQL" to DatabaseVendor.MYSQL,
-        )
-
-    private fun h2(mode: String): DataSource =
+    private fun h2(): DataSource =
         JdbcDataSource().apply {
-            setURL("jdbc:h2:mem:${UUID.randomUUID()};MODE=$mode;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1")
+            setURL("jdbc:h2:mem:${UUID.randomUUID()};MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1")
         }
 
-    private fun migrated(mode: String): DataSource =
-        h2(mode).also { DatabaseMigrator(it, cases.first { (m, _) -> m == mode }.second).migrate() }
+    private fun migrated(): DataSource = h2().also { DatabaseMigrator(it, DatabaseVendor.POSTGRESQL).migrate() }
 
     @Test
     fun `마이그레이션은 users와 refresh_tokens 테이블을 만든다`() {
-        cases.forEach { (mode, vendor) ->
-            val dataSource = h2(mode)
+        val dataSource = h2()
 
-            val result = DatabaseMigrator(dataSource, vendor).migrate()
+        val result = DatabaseMigrator(dataSource, DatabaseVendor.POSTGRESQL).migrate()
 
-            assertTrue(result.success, mode)
-            assertEquals(setOf("users", "refresh_tokens"), dataSource.userTables(), mode)
-        }
+        assertTrue(result.success)
+        assertEquals(setOf("users", "refresh_tokens"), dataSource.userTables())
     }
 
     @Test
     fun `두 번 실행하면 두 번째에는 적용할 마이그레이션이 없다`() {
-        cases.forEach { (mode, vendor) ->
-            val dataSource = h2(mode)
-            DatabaseMigrator(dataSource, vendor).migrate()
+        val dataSource = h2()
+        DatabaseMigrator(dataSource, DatabaseVendor.POSTGRESQL).migrate()
 
-            val second = DatabaseMigrator(dataSource, vendor).migrate()
+        val second = DatabaseMigrator(dataSource, DatabaseVendor.POSTGRESQL).migrate()
 
-            assertEquals(0, second.migrationsExecuted, mode)
-        }
+        assertEquals(0, second.migrationsExecuted)
     }
 
     @Test
     fun `같은 이메일로 두 번 가입할 수 없다`() {
-        cases.forEach { (mode, _) ->
-            val dataSource = migrated(mode)
-            dataSource.insertUser(id = "u1", email = "a@example.com")
+        val dataSource = migrated()
+        dataSource.insertUser(id = "u1", email = "a@example.com")
 
-            assertFailsWith<SQLException>(mode) { dataSource.insertUser(id = "u2", email = "a@example.com") }
-        }
+        assertFailsWith<SQLException> { dataSource.insertUser(id = "u2", email = "a@example.com") }
     }
 
     @Test
     fun `대문자가 섞인 이메일은 저장할 수 없다`() {
-        cases.forEach { (mode, _) ->
-            val dataSource = migrated(mode)
+        val dataSource = migrated()
 
-            assertFailsWith<SQLException>(mode) { dataSource.insertUser(id = "u1", email = "A@example.com") }
-        }
+        assertFailsWith<SQLException> { dataSource.insertUser(id = "u1", email = "A@example.com") }
     }
 
     @Test
     fun `사용자를 지우면 그 사용자의 refresh token도 지워진다`() {
-        cases.forEach { (mode, _) ->
-            val dataSource = migrated(mode)
-            dataSource.insertUser(id = "u1", email = "a@example.com")
-            dataSource.execute(
-                "INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) " +
-                    "VALUES ('t1', 'u1', '${"a".repeat(64)}', 2, 1)",
-            )
+        val dataSource = migrated()
+        dataSource.insertUser(id = "u1", email = "a@example.com")
+        dataSource.execute(
+            "INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) " +
+                "VALUES ('t1', 'u1', '${"a".repeat(64)}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+        )
 
-            dataSource.execute("DELETE FROM users WHERE id = 'u1'")
+        dataSource.execute("DELETE FROM users WHERE id = 'u1'")
 
-            assertEquals(0, dataSource.count("refresh_tokens"), mode)
-        }
+        assertEquals(0, dataSource.count("refresh_tokens"))
     }
 
     @Test
     fun `없는 사용자의 refresh token은 저장할 수 없다`() {
-        cases.forEach { (mode, _) ->
-            val dataSource = migrated(mode)
+        val dataSource = migrated()
 
-            assertFailsWith<SQLException>(mode) {
-                dataSource.execute(
-                    "INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) " +
-                        "VALUES ('t1', 'nobody', '${"a".repeat(64)}', 2, 1)",
-                )
-            }
+        assertFailsWith<SQLException> {
+            dataSource.execute(
+                "INSERT INTO refresh_tokens (id, user_id, token_hash, expires_at, created_at) " +
+                    "VALUES ('t1', 'nobody', '${"a".repeat(64)}', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
+            )
         }
     }
 }
@@ -118,7 +99,7 @@ internal fun DataSource.insertUser(
     email: String,
 ) = execute(
     "INSERT INTO users (id, email, password_hash, display_name, created_at, updated_at) " +
-        "VALUES ('$id', '$email', 'hash', 'name', 1, 1)",
+        "VALUES ('$id', '$email', 'hash', 'name', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)",
 )
 
 /** 현재 catalog/schema 의 사용자 테이블 (시스템 카탈로그·Flyway 이력 제외). */

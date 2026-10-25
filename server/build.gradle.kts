@@ -75,12 +75,11 @@ dependencies {
 
     implementation(libs.exposed.core)
     implementation(libs.exposed.jdbc)
+    implementation(libs.exposed.kotlin.datetime)
     implementation(libs.hikari)
     implementation(libs.flyway.core)
     runtimeOnly(libs.flyway.database.postgresql)
-    runtimeOnly(libs.flyway.mysql)
     runtimeOnly(libs.postgresql)
-    runtimeOnly(libs.mysql.connector)
     implementation(libs.h2)
 
     implementation(libs.kotlinx.coroutines.core)

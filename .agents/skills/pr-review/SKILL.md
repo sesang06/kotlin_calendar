@@ -62,7 +62,7 @@ description: kotlin_calendar Pull Request를 별도의 리뷰 에이전트가 �
 **security-config**
 - URL·비밀번호·토큰이 하드코딩되거나 커밋되지 않았는가? (`application.yaml`은 `$ENV:default`만)
 - DB 선택이 `databaseModule` 한 곳에서만 이뤄지는가?
-- 마이그레이션: 머지된 `V` 파일을 수정하지 않았는가? postgresql·mysql 양쪽에 같은 버전이 있는가? 새 테이블이 Supabase RLS 반복 마이그레이션에 추가됐는가? 제약 이름·타입 규칙(`server-database`)을 지키는가? 제약 조건 테스트가 있는가?
+- 마이그레이션: 머지된 `V` 파일을 수정하지 않았는가? 새 테이블이 Supabase RLS 반복 마이그레이션에 추가됐는가? 제약 이름·타입 규칙(`server-database`)을 지키는가? 제약 조건 테스트가 있는가?
 - 비밀번호·토큰 컬럼이 원문이 아닌 해시인가?
 - CORS가 필요한 host만 허용하는가?
 - CI `permissions` 최소, 시크릿이 `pull_request`에서 쓰이지 않는가?

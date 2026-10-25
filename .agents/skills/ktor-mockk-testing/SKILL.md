@@ -161,15 +161,15 @@ class ExposedEventRepositoryTest {
 
 ```kotlin
 @Test
-fun `provider가 mysql이면 MySqlDatabaseProvider`() {
+fun `provider가 supabase이면 SupabaseDatabaseProvider`() {
     val config = MapApplicationConfig(
-        "database.provider" to "mysql",
-        "database.mysql.url" to "jdbc:mysql://localhost/x",
-        "database.mysql.user" to "u",
-        "database.mysql.password" to "p",
-        "database.mysql.maxPoolSize" to "2",
+        "database.provider" to "supabase",
+        "database.supabase.url" to "jdbc:postgresql://localhost/x",
+        "database.supabase.user" to "u",
+        "database.supabase.password" to "p",
+        "database.supabase.maxPoolSize" to "2",
     )
-    assertIs<MySqlDatabaseProvider>(databaseProviderFrom(config))
+    assertIs<SupabaseDatabaseProvider>(databaseProviderFrom(config))
 }
 ```
 
