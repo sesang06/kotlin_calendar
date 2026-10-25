@@ -12,14 +12,21 @@ message Event {
   int64 start_epoch_millis = 3;
   int64 end_epoch_millis = 4;
   int64 created_at_epoch_millis = 5;
+  // 빈 문자열이면 설명 없음.
+  string description = 6;
+  // 일정 소유자 (auth.v1.User.id). 서버가 access token에서 채운다.
+  string owner_user_id = 7;
 }
 
 message ListEventsRequest {
-  // ISO-8601 날짜 (yyyy-MM-dd), UTC 기준 하루.
+  // ISO-8601 날짜 (yyyy-MM-dd).
   string date = 1;
+  // 하루의 경계를 정하는 IANA 시간대 (예: "Asia/Seoul"). 비어 있으면 UTC.
+  string time_zone = 2;
 }
 
 message ListEventsResponse {
+  // start_epoch_millis 오름차순.
   repeated Event events = 1;
 }
 
@@ -28,9 +35,13 @@ message GetEventRequest {
 }
 
 message CreateEventRequest {
+  // 1~200자, 공백만으로 이뤄질 수 없음.
   string title = 1;
   int64 start_epoch_millis = 2;
+  // start_epoch_millis 보다 커야 함.
   int64 end_epoch_millis = 3;
+  // 0~2000자.
+  string description = 4;
 }
 
 message DeleteEventRequest {
@@ -44,7 +55,17 @@ message ErrorResponse {
   string message = 1;
 }
 
-// gRPC: EventApi/*, HTTP: /api/events (proto-contract 스킬의 매핑 표 참고)
+// 모든 RPC는 로그인한 사용자의 access token이 필요하다.
+//   HTTP: Authorization: Bearer <access_token>
+//   gRPC: metadata "authorization: Bearer <access_token>"
+// 사용자는 자기 일정만 조회·삭제할 수 있다. 다른 사용자의 일정은 존재 여부를 숨기기 위해 NOT_FOUND.
+//
+// | RPC         | HTTP                                                  | 성공                   |
+// |-------------|-------------------------------------------------------|------------------------|
+// | ListEvents  | GET    /api/events?date=yyyy-MM-dd&time_zone=<IANA>   | 200 ListEventsResponse |
+// | GetEvent    | GET    /api/events/{id}                               | 200 Event              |
+// | CreateEvent | POST   /api/events                                    | 201 Event              |
+// | DeleteEvent | DELETE /api/events/{id}                               | 204                    |
 service EventApi {
   rpc ListEvents(ListEventsRequest) returns (ListEventsResponse);
   rpc GetEvent(GetEventRequest) returns (Event);

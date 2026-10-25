@@ -64,11 +64,13 @@ option java_package = "com.kotlincalendar.proto.calendar.v1";
 
 | RPC | HTTP | 요청 바디 | 응답 |
 |---|---|---|---|
-| `ListEvents` | `GET /api/events?date=yyyy-MM-dd` | 없음 (쿼리) | `ListEventsResponse` |
+| `ListEvents` | `GET /api/events?date=yyyy-MM-dd&time_zone=Asia/Seoul` | 없음 (쿼리, `time_zone` 생략 시 UTC) | `ListEventsResponse` |
 | `GetEvent` | `GET /api/events/{id}` | 없음 | `Event` |
 | `CreateEvent` | `POST /api/events` | `CreateEventRequest` | `201` + `Event` |
 | `DeleteEvent` | `DELETE /api/events/{id}` | 없음 | `204` |
 
+- 매핑 표는 `.proto`의 `service` 위 주석에도 같은 형식으로 둔다 (생성 코드를 보는 사람도 알 수 있게).
+- 소유권이 있는 리소스는 소유자 ID를 요청 메시지로 받지 않는다. 서버가 access token에서 정하고, 남의 리소스는 `NOT_FOUND`로 숨긴다.
 - HTTP 바디는 `Content-Type: application/x-protobuf` (protobuf 바이너리).
 - 조회는 GET + 쿼리/경로 파라미터, 생성·수정은 POST/PATCH + proto 바디.
 
