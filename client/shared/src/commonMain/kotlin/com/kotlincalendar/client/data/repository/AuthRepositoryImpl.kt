@@ -1,8 +1,8 @@
 package com.kotlincalendar.client.data.repository
 
+import com.kotlincalendar.client.common.runCatchingCancellable
 import com.kotlincalendar.client.data.mapper.toDomain
 import com.kotlincalendar.client.data.remote.AuthRemoteDataSource
-import com.kotlincalendar.client.data.util.runCatchingCancellable
 import com.kotlincalendar.client.domain.model.AuthState
 import com.kotlincalendar.client.domain.model.AuthTokens
 import com.kotlincalendar.client.domain.model.User
