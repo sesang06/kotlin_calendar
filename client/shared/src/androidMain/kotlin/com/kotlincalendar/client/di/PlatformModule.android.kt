@@ -1,7 +1,7 @@
 package com.kotlincalendar.client.di
 
-import com.kotlincalendar.client.data.local.InMemoryKeyValueStorage
 import com.kotlincalendar.client.data.local.KeyValueStorage
+import com.kotlincalendar.client.data.local.SharedPreferencesKeyValueStorage
 import com.kotlincalendar.client.data.remote.ApiConfig
 import com.kotlincalendar.client.data.remote.grpc.GrpcClientFactory
 import com.squareup.wire.GrpcClient
@@ -9,12 +9,13 @@ import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
 import okhttp3.OkHttpClient
 import okhttp3.Protocol
+import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.Module
 import org.koin.dsl.module
 
 actual val platformModule: Module =
     module {
-        single<KeyValueStorage> { InMemoryKeyValueStorage() }
+        single<KeyValueStorage> { SharedPreferencesKeyValueStorage(androidContext()) }
         single<HttpClientEngine> { OkHttp.create() }
         single { ApiConfig(httpBaseUrl = "http://10.0.2.2:8080", grpcBaseUrl = "http://10.0.2.2:50051") }
         single<GrpcClientFactory> {
