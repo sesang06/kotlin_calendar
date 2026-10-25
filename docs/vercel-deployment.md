@@ -28,3 +28,13 @@
 
 2. **빌드 실행**
    - Vercel의 빌드 환경에서 JDK 21(없으면 Amazon Corretto 21 설치, 실패 시 빌드 중단) 및 Gradle을 통해 Wasm 브라우저 번들을 빌드하고 정적 자산과 서버리스 함수를 배포합니다.
+
+## 배포 시점
+
+`main`에 머지된 커밋만 배포한다. PR·다른 브랜치 push는 프리뷰를 만들지 않는다.
+
+- `vercel.json`의 `ignoreCommand`가 `scripts/vercel-ignore-build.sh`를 실행한다 (Vercel "Ignored Build Step": exit 0이면 건너뜀).
+- `VERCEL_GIT_COMMIT_REF`가 `main`이 아니면 건너뛴다. Git 연동이 아닌 수동 배포(`vercel deploy`)는 그대로 빌드된다.
+- 건너뛴 커밋은 Vercel·GitHub 상태에 "Canceled"(Ignored)로 표시된다.
+- Vercel 대시보드 Settings → Git의 Production Branch가 `main`인지 확인한다.
+
