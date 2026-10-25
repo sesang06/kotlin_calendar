@@ -7,14 +7,18 @@ import kotlin.time.Instant
 
 class FakeEventRepository : EventRepository {
     var eventsResult: Result<List<Event>> = Result.success(emptyList())
+    var rangeEventsResult: Result<List<Event>> = Result.success(emptyList())
+    val requestedRanges = mutableListOf<Pair<LocalDate, LocalDate>>()
     var getEventResult: Result<Event> = Result.failure(NoSuchElementException("Not found"))
     var createEventResult: Result<Event> = Result.failure(IllegalStateException("Failed"))
+    var updateEventResult: Result<Event> = Result.failure(IllegalStateException("Failed"))
     var deleteEventResult: Result<Unit> = Result.success(Unit)
 
     val requestedDates = mutableListOf<LocalDate>()
     val requestedEventIds = mutableListOf<String>()
     val deletedEventIds = mutableListOf<String>()
     val createdEvents = mutableListOf<CreateEventCall>()
+    val updatedEvents = mutableListOf<Pair<String, CreateEventCall>>()
 
     data class CreateEventCall(
         val title: String,
@@ -31,6 +35,15 @@ class FakeEventRepository : EventRepository {
         return eventsResult
     }
 
+    override suspend fun getEventsInRange(
+        startDate: LocalDate,
+        endDate: LocalDate,
+        timeZone: String?,
+    ): Result<List<Event>> {
+        requestedRanges += startDate to endDate
+        return rangeEventsResult
+    }
+
     override suspend fun getEvent(id: String): Result<Event> {
         requestedEventIds += id
         return getEventResult
@@ -44,6 +57,17 @@ class FakeEventRepository : EventRepository {
     ): Result<Event> {
         createdEvents += CreateEventCall(title, startTime, endTime, description)
         return createEventResult
+    }
+
+    override suspend fun updateEvent(
+        id: String,
+        title: String,
+        startTime: Instant,
+        endTime: Instant,
+        description: String,
+    ): Result<Event> {
+        updatedEvents += id to CreateEventCall(title, startTime, endTime, description)
+        return updateEventResult
     }
 
     override suspend fun deleteEvent(id: String): Result<Unit> {

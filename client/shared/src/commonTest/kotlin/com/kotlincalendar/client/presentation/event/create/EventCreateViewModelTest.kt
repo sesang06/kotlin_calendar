@@ -188,4 +188,68 @@ class EventCreateViewModelTest {
                 assertEquals(EventCreateEffect.NavigateBack, awaitItem())
             }
         }
+
+    private val existingEvent =
+        Event(
+            id = "e1",
+            title = "기존 회의",
+            // 2026-11-03 10:00~11:30 KST
+            start = Instant.parse("2026-11-03T01:00:00Z"),
+            end = Instant.parse("2026-11-03T02:30:00Z"),
+            description = "메모",
+        )
+
+    @Test
+    fun editMode_loadsEventIntoForm() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.success(existingEvent)
+            val vm = EventCreateViewModel(today, repo, clock, timeZone, eventId = "e1")
+
+            assertTrue(vm.state.value.isEditing)
+            assertTrue(vm.state.value.isLoadingEvent)
+            advanceUntilIdle()
+
+            val state = vm.state.value
+            assertFalse(state.isLoadingEvent)
+            assertEquals("기존 회의", state.title)
+            assertEquals("메모", state.description)
+            assertEquals(LocalDate(2026, 11, 3), state.startDate)
+            assertEquals(LocalTime(10, 0), state.startTime)
+            assertEquals(LocalTime(11, 30), state.endTime)
+        }
+
+    @Test
+    fun editMode_save_updatesEventAndEmitsUpdated() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.success(existingEvent)
+            repo.updateEventResult = Result.success(existingEvent.copy(title = "바뀐 회의"))
+            val vm = EventCreateViewModel(today, repo, clock, timeZone, eventId = "e1")
+            advanceUntilIdle()
+
+            vm.effects.test {
+                vm.onAction(EventCreateAction.ChangeTitle("바뀐 회의"))
+                vm.onAction(EventCreateAction.Save)
+                advanceUntilIdle()
+
+                assertEquals(EventCreateEffect.Updated("e1"), awaitItem())
+            }
+            assertTrue(repo.createdEvents.isEmpty())
+            val (id, call) = repo.updatedEvents.single()
+            assertEquals("e1", id)
+            assertEquals("바뀐 회의", call.title)
+            assertEquals(existingEvent.start, call.startTime)
+            assertEquals(existingEvent.end, call.endTime)
+            assertEquals("메모", call.description)
+        }
+
+    @Test
+    fun editMode_loadFailure_setsErrorAndBlocksSave() =
+        runTest(dispatcher) {
+            repo.getEventResult = Result.failure(IllegalStateException("없음"))
+            val vm = EventCreateViewModel(today, repo, clock, timeZone, eventId = "e1")
+            advanceUntilIdle()
+
+            assertEquals("없음", vm.state.value.errorMessage)
+            assertFalse(vm.state.value.isLoadingEvent)
+        }
 }

@@ -1,6 +1,6 @@
 package com.kotlincalendar.client.data.local
 
-/** 플랫폼별 문자열 저장소. 웹은 localStorage, 그 외 플랫폼은 아직 메모리. */
+/** 플랫폼별 문자열 저장소. 웹 localStorage, Android SharedPreferences, 데스크톱 파일, iOS NSUserDefaults. */
 interface KeyValueStorage {
     fun get(key: String): String?
 

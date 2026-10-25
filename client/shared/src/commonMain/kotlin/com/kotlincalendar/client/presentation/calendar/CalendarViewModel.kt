@@ -32,9 +32,12 @@ class CalendarViewModel(
     val effects: Flow<CalendarEffect> = _effects.receiveAsFlow()
 
     private var loadJob: Job? = null
+    private var rangeJob: Job? = null
+    private var loadedRange: ClosedRange<LocalDate>? = null
 
     init {
         loadEvents()
+        loadRangeIfNeeded(force = true)
     }
 
     fun onAction(action: CalendarAction) {
@@ -42,10 +45,19 @@ class CalendarViewModel(
             CalendarAction.PreviousMonth -> showMonth(_state.value.visibleMonth.minus(1, DateTimeUnit.MONTH))
             CalendarAction.NextMonth -> showMonth(_state.value.visibleMonth.plus(1, DateTimeUnit.MONTH))
             CalendarAction.GoToToday -> selectDate(_state.value.today)
+            CalendarAction.PreviousPeriod -> movePeriod(-1)
+            CalendarAction.NextPeriod -> movePeriod(1)
+            is CalendarAction.ChangeViewMode -> {
+                _state.update { it.copy(viewMode = action.mode) }
+                loadRangeIfNeeded(force = false)
+            }
             is CalendarAction.SelectDate -> selectDate(action.date)
             is CalendarAction.OpenEvent -> sendEffect(CalendarEffect.NavigateToEvent(action.id))
             CalendarAction.CreateEvent -> sendEffect(CalendarEffect.NavigateToCreateEvent(_state.value.selectedDate))
-            CalendarAction.Refresh, CalendarAction.Retry -> loadEvents()
+            CalendarAction.Refresh, CalendarAction.Retry -> {
+                loadEvents()
+                loadRangeIfNeeded(force = true)
+            }
         }
     }
 
@@ -56,9 +68,58 @@ class CalendarViewModel(
         selectDate(date)
     }
 
+    private fun movePeriod(direction: Int) {
+        val current = _state.value
+        when (current.viewMode) {
+            CalendarViewMode.MONTH -> {
+                showMonth(
+                    if (direction > 0) {
+                        current.visibleMonth.plus(1, DateTimeUnit.MONTH)
+                    } else {
+                        current.visibleMonth.minus(1, DateTimeUnit.MONTH)
+                    },
+                )
+            }
+            CalendarViewMode.WEEK -> selectDate(current.selectedDate.plus(direction * DAYS_IN_WEEK, DateTimeUnit.DAY))
+            CalendarViewMode.DAY -> selectDate(current.selectedDate.plus(direction, DateTimeUnit.DAY))
+        }
+    }
+
     private fun selectDate(date: LocalDate) {
         _state.update { it.copy(selectedDate = date, visibleMonth = firstDayOfMonth(date)) }
         loadEvents()
+        loadRangeIfNeeded(force = false)
+    }
+
+    /** 월간은 그리드 전체, 주간은 그 주. 일간은 하루 목록만 쓰므로 범위를 불러오지 않는다. */
+    private fun currentRange(state: CalendarUiState): ClosedRange<LocalDate>? =
+        when (state.viewMode) {
+            CalendarViewMode.MONTH -> monthGridRange(state.visibleMonth)
+            CalendarViewMode.WEEK -> weekRange(state.selectedDate)
+            CalendarViewMode.DAY -> null
+        }
+
+    /** 범위 일정을 불러와 일정 있는 날 표시와 주간 목록을 만든다. 실패해도 화면 오류로 보지 않는다. */
+    private fun loadRangeIfNeeded(force: Boolean) {
+        val range = currentRange(_state.value) ?: return
+        if (!force && range == loadedRange) return
+        loadedRange = range
+        rangeJob?.cancel()
+        rangeJob =
+            viewModelScope.launch {
+                val events = eventRepository.getEventsInRange(range.start, range.endInclusive, timeZone.id).getOrNull()
+                _state.update {
+                    it.copy(
+                        eventDays = events?.let { list -> eventDays(list, timeZone, range) } ?: emptySet(),
+                        weekDays =
+                            if (it.viewMode == CalendarViewMode.WEEK) {
+                                groupEventsByDay(events.orEmpty(), timeZone, range)
+                            } else {
+                                it.weekDays
+                            },
+                    )
+                }
+            }
     }
 
     private fun sendEffect(effect: CalendarEffect) {

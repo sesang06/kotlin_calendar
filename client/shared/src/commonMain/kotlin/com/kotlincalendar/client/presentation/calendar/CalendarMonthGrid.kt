@@ -1,11 +1,15 @@
 package com.kotlincalendar.client.presentation.calendar
 
+import com.kotlincalendar.client.domain.model.Event
 import kotlinx.datetime.DateTimeUnit
 import kotlinx.datetime.DayOfWeek
 import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
 import kotlinx.datetime.isoDayNumber
 import kotlinx.datetime.minus
 import kotlinx.datetime.plus
+import kotlinx.datetime.toLocalDateTime
+import kotlin.time.Duration.Companion.nanoseconds
 
 /** 달력 그리드는 일요일부터 시작한다. */
 val CalendarWeekStart: DayOfWeek = DayOfWeek.SUNDAY
@@ -43,4 +47,62 @@ fun buildMonthGrid(month: LocalDate): List<List<CalendarDay>> {
         weekStart = weekStart.plus(DAYS_IN_WEEK, DateTimeUnit.DAY)
     }
     return weeks
+}
+
+/** 그리드의 첫날과 마지막 날 (이전·다음 달 날짜 포함). */
+fun monthGridRange(month: LocalDate): ClosedRange<LocalDate> {
+    val weeks = buildMonthGrid(month)
+    return weeks.first().first().date..weeks.last().last().date
+}
+
+/**
+ * [events]가 걸쳐 있는 날짜 중 [range] 안의 날짜.
+ * 종료 시각은 포함하지 않으므로 자정에 끝나는 일정은 다음 날에 표시하지 않는다.
+ */
+fun eventDays(
+    events: List<Event>,
+    timeZone: TimeZone,
+    range: ClosedRange<LocalDate>,
+): Set<LocalDate> {
+    val days = mutableSetOf<LocalDate>()
+    for (event in events) {
+        val startDate = event.start.toLocalDateTime(timeZone).date
+        val lastInstant = if (event.end > event.start) event.end - 1.nanoseconds else event.start
+        val endDate = lastInstant.toLocalDateTime(timeZone).date
+        var date = maxOf(startDate, range.start)
+        val last = minOf(endDate, range.endInclusive)
+        while (date <= last) {
+            days += date
+            date = date.plus(1, DateTimeUnit.DAY)
+        }
+    }
+    return days
+}
+
+/** [date]가 속한 주(일요일 시작)의 첫날~마지막 날. */
+fun weekRange(date: LocalDate): ClosedRange<LocalDate> {
+    val offset = (date.dayOfWeek.isoDayNumber - CalendarWeekStart.isoDayNumber + DAYS_IN_WEEK) % DAYS_IN_WEEK
+    val start = date.minus(offset, DateTimeUnit.DAY)
+    return start..start.plus(DAYS_IN_WEEK - 1, DateTimeUnit.DAY)
+}
+
+/** [range]의 날마다 그날과 겹치는 일정 (시작 시각 순). */
+fun groupEventsByDay(
+    events: List<Event>,
+    timeZone: TimeZone,
+    range: ClosedRange<LocalDate>,
+): List<CalendarWeekDay> {
+    val sorted = events.sortedBy { it.start }
+    val days = mutableListOf<CalendarWeekDay>()
+    var date = range.start
+    while (date <= range.endInclusive) {
+        val day = date
+        val items =
+            sorted
+                .filter { day in eventDays(listOf(it), timeZone, day..day) }
+                .map { it.toCalendarEventItem(day, timeZone) }
+        days += CalendarWeekDay(day, items)
+        date = date.plus(1, DateTimeUnit.DAY)
+    }
+    return days
 }

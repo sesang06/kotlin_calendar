@@ -1,5 +1,6 @@
 package com.kotlincalendar.client.presentation.event.detail
 
+import kotlinx.datetime.LocalDate
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.format
@@ -33,6 +34,21 @@ private val timeOnlyFormat =
         char(':')
         minute()
     }
+
+private val koreanDateFormat =
+    LocalDate.Format {
+        year()
+        chars("년 ")
+        monthNumber(Padding.NONE)
+        chars("월 ")
+        day(Padding.NONE)
+        chars("일 (")
+        dayOfWeek(koreanDayOfWeekNames)
+        char(')')
+    }
+
+/** 예: `2026년 10월 25일 (일)` */
+fun formatKoreanDate(date: LocalDate): String = date.format(koreanDateFormat)
 
 /** 예: `2026년 10월 25일 (일) 14:00` */
 fun formatEventDateTime(

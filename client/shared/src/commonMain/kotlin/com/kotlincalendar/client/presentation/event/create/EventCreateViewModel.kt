@@ -27,12 +27,21 @@ class EventCreateViewModel(
     private val eventRepository: EventRepository,
     clock: Clock = Clock.System,
     private val timeZone: TimeZone = TimeZone.currentSystemDefault(),
+    /** null이 아니면 이 일정을 불러와 수정한다. */
+    private val eventId: String? = null,
 ) : ViewModel() {
-    private val _state = MutableStateFlow(initialState(initialDate, clock.now()))
+    private val _state =
+        MutableStateFlow(
+            initialState(initialDate, clock.now()).copy(isEditing = eventId != null, isLoadingEvent = eventId != null),
+        )
     val state: StateFlow<EventCreateUiState> = _state.asStateFlow()
 
     private val _effects = Channel<EventCreateEffect>(Channel.BUFFERED)
     val effects: Flow<EventCreateEffect> = _effects.receiveAsFlow()
+
+    init {
+        if (eventId != null) loadEvent(eventId)
+    }
 
     fun onAction(action: EventCreateAction) {
         when (action) {
@@ -90,9 +99,38 @@ class EventCreateViewModel(
         }
     }
 
+    private fun loadEvent(id: String) {
+        viewModelScope.launch {
+            eventRepository
+                .getEvent(id)
+                .onSuccess { event ->
+                    val start = event.start.toLocalDateTime(timeZone)
+                    val end = event.end.toLocalDateTime(timeZone)
+                    _state.update {
+                        it.copy(
+                            title = event.title,
+                            description = event.description,
+                            startDate = start.date,
+                            startTime = start.time,
+                            endDate = end.date,
+                            endTime = end.time,
+                            isLoadingEvent = false,
+                        )
+                    }
+                }.onFailure { error ->
+                    _state.update {
+                        it.copy(
+                            isLoadingEvent = false,
+                            errorMessage = error.message ?: "일정을 불러오지 못했습니다.",
+                        )
+                    }
+                }
+        }
+    }
+
     private fun save() {
         val current = _state.value
-        if (current.isSaving) return
+        if (current.isSaving || current.isLoadingEvent) return
 
         val title = current.title.trim()
         val start = current.startInstant()
@@ -111,11 +149,18 @@ class EventCreateViewModel(
 
         _state.update { it.copy(isSaving = true, errorMessage = null) }
         viewModelScope.launch {
-            eventRepository
-                .createEvent(title = title, startTime = start, endTime = end, description = current.description)
+            val result =
+                if (eventId != null) {
+                    eventRepository.updateEvent(eventId, title, start, end, current.description)
+                } else {
+                    eventRepository.createEvent(title = title, startTime = start, endTime = end, description = current.description)
+                }
+            result
                 .onSuccess { event ->
                     _state.update { it.copy(isSaving = false) }
-                    _effects.send(EventCreateEffect.Created(event.id))
+                    _effects.send(
+                        if (eventId != null) EventCreateEffect.Updated(event.id) else EventCreateEffect.Created(event.id),
+                    )
                 }.onFailure { error ->
                     _state.update {
                         it.copy(
