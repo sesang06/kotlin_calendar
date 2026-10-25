@@ -5,3 +5,4 @@
 -- 새 테이블을 만들면 여기에 한 줄 추가한다 (반복 마이그레이션이라 내용이 바뀌면 다시 실행된다).
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE refresh_tokens ENABLE ROW LEVEL SECURITY;
+ALTER TABLE events ENABLE ROW LEVEL SECURITY;
