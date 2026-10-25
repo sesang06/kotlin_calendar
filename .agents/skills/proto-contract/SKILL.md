@@ -11,8 +11,10 @@ description: kotlin_calendar 클라이언트·서버 통신 메시지를 Protoco
 
 ```
 proto/                         # 단일 계약 소스 (Gradle 모듈 아님)
+├── auth/v1/
+│   └── auth.proto             # AuthApi: 회원가입·로그인·토큰 재발급·로그아웃
 └── calendar/v1/
-    └── event.proto
+    └── event.proto            # EventApi: 일정 생성·조회·삭제
 ```
 
 | 쪽 | 생성기 | 설정 위치 | 생성 패키지 |
@@ -68,6 +70,12 @@ option java_package = "com.kotlincalendar.proto.calendar.v1";
 | `GetEvent` | `GET /api/events/{id}` | 없음 | `Event` |
 | `CreateEvent` | `POST /api/events` | `CreateEventRequest` | `201` + `Event` |
 | `DeleteEvent` | `DELETE /api/events/{id}` | 없음 | `204` |
+| `AuthApi.SignUp` | `POST /api/auth/signup` | `SignUpRequest` | `201` + `SignUpResponse` |
+| `AuthApi.Login` | `POST /api/auth/login` | `LoginRequest` | `LoginResponse` |
+| `AuthApi.RefreshToken` | `POST /api/auth/refresh` | `RefreshTokenRequest` | `RefreshTokenResponse` |
+| `AuthApi.Logout` | `POST /api/auth/logout` | `LogoutRequest` | `204` |
+
+- 비밀번호·토큰 같은 민감 값은 **요청 바디로만** 보낸다 (URL·쿼리 금지). 응답 메시지에 비밀번호·해시를 담지 않는다.
 
 - HTTP 바디는 `Content-Type: application/x-protobuf` (protobuf 바이너리).
 - 조회는 GET + 쿼리/경로 파라미터, 생성·수정은 POST/PATCH + proto 바디.

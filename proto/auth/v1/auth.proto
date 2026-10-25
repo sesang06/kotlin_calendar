@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package auth.v1;
+
+option java_multiple_files = true;
+option java_package = "com.kotlincalendar.proto.auth.v1";
+
+// 가입한 사용자. 비밀번호 등 민감 정보는 절대 담지 않는다.
+message User {
+  string id = 1;
+  // 소문자로 정규화된 이메일.
+  string email = 2;
+  string display_name = 3;
+  int64 created_at_epoch_millis = 4;
+}
+
+// access token: 짧은 수명(서명 토큰, API 호출에 사용).
+// refresh token: 긴 수명(불투명 문자열, 재발급에만 사용, 사용 시 교체됨).
+message AuthTokens {
+  string access_token = 1;
+  int64 access_token_expires_at_epoch_millis = 2;
+  string refresh_token = 3;
+  int64 refresh_token_expires_at_epoch_millis = 4;
+}
+
+message SignUpRequest {
+  // RFC 5322 형식, 최대 320자. 서버가 소문자로 정규화한다.
+  string email = 1;
+  // 8~72자 (bcrypt 입력 한계).
+  string password = 2;
+  // 1~100자.
+  string display_name = 3;
+}
+
+message SignUpResponse {
+  User user = 1;
+  AuthTokens tokens = 2;
+}
+
+message LoginRequest {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResponse {
+  User user = 1;
+  AuthTokens tokens = 2;
+}
+
+message RefreshTokenRequest {
+  string refresh_token = 1;
+}
+
+message RefreshTokenResponse {
+  // 새 access token과 새 refresh token. 이전 refresh token은 폐기된다.
+  AuthTokens tokens = 1;
+}
+
+message LogoutRequest {
+  // 폐기할 refresh token (현재 기기 세션).
+  string refresh_token = 1;
+}
+
+message LogoutResponse {}
+
+// 인증 없이 호출 가능 (Logout 제외).
+// 실패 시:
+//   - 입력 형식 오류           → INVALID_ARGUMENT / 400
+//   - 이미 가입된 이메일       → ALREADY_EXISTS   / 409
+//   - 이메일·비밀번호 불일치,
+//     만료·폐기된 refresh token → UNAUTHENTICATED  / 401 (어느 쪽이 틀렸는지 구분하지 않는다)
+//
+// | RPC          | HTTP                        | 인증         | 성공                     |
+// |--------------|-----------------------------|--------------|--------------------------|
+// | SignUp       | POST /api/auth/signup       | 없음         | 201 SignUpResponse       |
+// | Login        | POST /api/auth/login        | 없음         | 200 LoginResponse        |
+// | RefreshToken | POST /api/auth/refresh      | 없음         | 200 RefreshTokenResponse |
+// | Logout       | POST /api/auth/logout       | access token | 204                      |
+service AuthApi {
+  rpc SignUp(SignUpRequest) returns (SignUpResponse);
+  rpc Login(LoginRequest) returns (LoginResponse);
+  rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
+  rpc Logout(LogoutRequest) returns (LogoutResponse);
+}
