@@ -1,6 +1,7 @@
 package com.kotlincalendar.client.data.remote.http
 
 import com.kotlincalendar.client.data.mapper.toWireInstant
+import com.kotlincalendar.client.fake.FakeAuthSession
 import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
@@ -38,6 +39,7 @@ class HttpEventRemoteDataSourceTest {
                     assertEquals("/api/events", request.url.encodedPath)
                     assertEquals("2026-10-25", request.url.parameters["date"])
                     assertEquals("Asia/Seoul", request.url.parameters["time_zone"])
+                    assertEquals("Bearer access-1", request.headers[HttpHeaders.Authorization])
                     respond(
                         content = ListEventsResponse(events = listOf(sampleProtoEvent)).encode(),
                         status = HttpStatusCode.OK,
@@ -45,7 +47,7 @@ class HttpEventRemoteDataSourceTest {
                     )
                 }
 
-            val source = HttpEventRemoteDataSource(HttpClient(engine))
+            val source = HttpEventRemoteDataSource(HttpClient(engine), FakeAuthSession())
             val response =
                 source.listEvents(
                     ListEventsRequest(date = "2026-10-25", time_zone = "Asia/Seoul"),
@@ -69,7 +71,7 @@ class HttpEventRemoteDataSourceTest {
                     )
                 }
 
-            val source = HttpEventRemoteDataSource(HttpClient(engine))
+            val source = HttpEventRemoteDataSource(HttpClient(engine), FakeAuthSession())
             val response = source.getEvent(GetEventRequest(id = "evt-1"))
 
             assertEquals("evt-1", response.id)
@@ -98,7 +100,7 @@ class HttpEventRemoteDataSourceTest {
                     )
                 }
 
-            val source = HttpEventRemoteDataSource(HttpClient(engine))
+            val source = HttpEventRemoteDataSource(HttpClient(engine), FakeAuthSession())
             val response = source.createEvent(createReq)
 
             assertEquals("evt-1", response.id)
@@ -116,7 +118,7 @@ class HttpEventRemoteDataSourceTest {
                     )
                 }
 
-            val source = HttpEventRemoteDataSource(HttpClient(engine))
+            val source = HttpEventRemoteDataSource(HttpClient(engine), FakeAuthSession())
             val response = source.deleteEvent(DeleteEventRequest(id = "evt-to-delete"))
 
             assertEquals(DeleteEventResponse(), response)
