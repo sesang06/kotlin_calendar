@@ -179,6 +179,74 @@ class EventCreateViewModelTest {
         }
 
     @Test
+    fun saveTwice_beforeCompletion_callsRepositoryOnce() =
+        runTest(dispatcher) {
+            repo.createEventResult = Result.failure(RuntimeException("x"))
+            val vm = viewModel()
+            vm.onAction(EventCreateAction.ChangeTitle("회의"))
+
+            vm.onAction(EventCreateAction.Save)
+            vm.onAction(EventCreateAction.Save)
+            advanceUntilIdle()
+
+            assertEquals(1, repo.createdEvents.size)
+        }
+
+    @Test
+    fun changeStart_withNonPositiveDuration_fallsBackToOneHour() {
+        val vm = viewModel()
+
+        vm.onAction(EventCreateAction.ChangeEndTime(LocalTime(15, 0))) // 15:00~15:00 (0)
+        vm.onAction(EventCreateAction.ChangeStartTime(LocalTime(18, 30)))
+
+        assertEquals(today, vm.state.value.endDate)
+        assertEquals(LocalTime(19, 30), vm.state.value.endTime)
+    }
+
+    @Test
+    fun changeStartDate_movesEndDateAlong() {
+        val vm = viewModel()
+        val newDate = LocalDate(2026, 11, 1)
+
+        vm.onAction(EventCreateAction.ChangeStartDate(newDate))
+
+        assertEquals(newDate, vm.state.value.startDate)
+        assertEquals(LocalTime(15, 0), vm.state.value.startTime)
+        assertEquals(newDate, vm.state.value.endDate)
+        assertEquals(LocalTime(16, 0), vm.state.value.endTime)
+    }
+
+    @Test
+    fun save_failureWithoutMessage_usesDefaultMessage() =
+        runTest(dispatcher) {
+            repo.createEventResult = Result.failure(RuntimeException())
+            val vm = viewModel()
+            vm.onAction(EventCreateAction.ChangeTitle("회의"))
+
+            vm.onAction(EventCreateAction.Save)
+            advanceUntilIdle()
+
+            assertEquals("일정을 저장하지 못했습니다.", vm.state.value.errorMessage)
+        }
+
+    @Test
+    fun save_withTooLongDescription_setsErrorAndChangeClearsIt() =
+        runTest(dispatcher) {
+            val vm = viewModel()
+            vm.onAction(EventCreateAction.ChangeTitle("회의"))
+            vm.onAction(EventCreateAction.ChangeDescription("a".repeat(2001)))
+
+            vm.onAction(EventCreateAction.Save)
+            advanceUntilIdle()
+
+            assertEquals("설명은 2000자 이하로 입력해주세요.", vm.state.value.descriptionError)
+            assertTrue(repo.createdEvents.isEmpty())
+
+            vm.onAction(EventCreateAction.ChangeDescription("짧은 설명"))
+            assertNull(vm.state.value.descriptionError)
+        }
+
+    @Test
     fun back_emitsNavigateBack() =
         runTest(dispatcher) {
             val vm = viewModel()
