@@ -12,7 +12,7 @@ import kotlin.time.Instant
 
 data class TokenResult(
     val token: String,
-    val expiresAtEpochMillis: Long,
+    val expiresAt: Instant,
 )
 
 interface TokenProvider {
@@ -55,7 +55,7 @@ class HmacTokenProvider(
         val sigB64 = Base64.getUrlEncoder().withoutPadding().encodeToString(signature)
 
         val token = "$payloadB64.$sigB64"
-        return TokenResult(token, expiresAtMillis)
+        return TokenResult(token, expiresAt)
     }
 
     override fun generateRefreshToken(
@@ -66,7 +66,7 @@ class HmacTokenProvider(
         random.nextBytes(bytes)
         val token = Base64.getUrlEncoder().withoutPadding().encodeToString(bytes)
         val expiresAt = now + refreshTokenDuration
-        return TokenResult(token, expiresAt.toEpochMilliseconds())
+        return TokenResult(token, expiresAt)
     }
 
     override fun verifyAccessToken(

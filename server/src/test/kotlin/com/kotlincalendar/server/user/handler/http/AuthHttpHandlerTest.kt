@@ -36,6 +36,8 @@ import io.mockk.mockk
 import org.koin.dsl.module
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.days
+import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 
 class AuthHttpHandlerTest {
@@ -76,9 +78,9 @@ class AuthHttpHandlerTest {
             val tokens =
                 AuthTokens(
                     accessToken = "acc-token",
-                    accessTokenExpiresAtEpochMillis = 1000L,
+                    accessTokenExpiresAt = fixedNow + 15.minutes,
                     refreshToken = "ref-token",
-                    refreshTokenExpiresAtEpochMillis = 2000L,
+                    refreshTokenExpiresAt = fixedNow + 30.days,
                 )
             coEvery { userService.signUp(any()) } returns AuthResult(user, tokens)
 
@@ -140,9 +142,9 @@ class AuthHttpHandlerTest {
             val tokens =
                 AuthTokens(
                     accessToken = "acc-token",
-                    accessTokenExpiresAtEpochMillis = 1000L,
+                    accessTokenExpiresAt = fixedNow + 15.minutes,
                     refreshToken = "ref-token",
-                    refreshTokenExpiresAtEpochMillis = 2000L,
+                    refreshTokenExpiresAt = fixedNow + 30.days,
                 )
             coEvery { userService.login(any()) } returns AuthResult(user, tokens)
 
@@ -194,9 +196,9 @@ class AuthHttpHandlerTest {
             val tokens =
                 AuthTokens(
                     accessToken = "new-acc",
-                    accessTokenExpiresAtEpochMillis = 3000L,
+                    accessTokenExpiresAt = fixedNow + 15.minutes,
                     refreshToken = "new-ref",
-                    refreshTokenExpiresAtEpochMillis = 4000L,
+                    refreshTokenExpiresAt = fixedNow + 30.days,
                 )
             coEvery { userService.refreshToken(any()) } returns tokens
 
