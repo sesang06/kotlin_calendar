@@ -37,6 +37,7 @@ kotlin_calendar/
 | 테스트 | 서버 JUnit5 + MockK, 클라이언트 commonTest + Fake + Turbine |
 | 린트 | ktlint (`ktlint_official`) |
 | CI | GitHub Actions |
+| 웹 배포 | Vercel 정적 호스팅(Wasm) + `api/proxy.js`가 `/api/*`를 Ktor 서버로 전달 (`docs/vercel-deployment.md`) |
 | 협업 | 피처별 worktree + PR, 역할별 리뷰 에이전트 |
 | 저장소 | https://github.com/sesang06/kotlin_calendar (public) |
 

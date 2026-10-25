@@ -3,25 +3,26 @@ set -euo pipefail
 
 echo "=== Vercel Build Script for Kotlin Calendar ==="
 
-# Check Java installation or install if necessary
+# 프로젝트 toolchain(jvmToolchain(21))·CI와 같은 JDK 21을 쓴다. Vercel 빌드 이미지는 Amazon Linux 2023(dnf).
 if ! command -v java &> /dev/null; then
-    echo "Java not found. Installing OpenJDK 17..."
-    if command -v amazon-linux-extras &> /dev/null; then
-        amazon-linux-extras install java-openjdk17 -y
+    echo "Java not found. Installing Amazon Corretto 21..."
+    if command -v dnf &> /dev/null; then
+        dnf install -y java-21-amazon-corretto-devel
     elif command -v apt-get &> /dev/null; then
-        apt-get update && apt-get install -y openjdk-17-jdk-headless
-    elif command -v yum &> /dev/null; then
-        yum install -y java-17-openjdk-devel
+        apt-get update && apt-get install -y openjdk-21-jdk-headless
     fi
 fi
 
-echo "Java version:"
-java -version || true
+if ! command -v java &> /dev/null; then
+    echo "ERROR: JDK 21 could not be installed." >&2
+    exit 1
+fi
 
-# Make gradlew executable
+echo "Java version:"
+java -version
+
 chmod +x ./gradlew
 
-# Build WebAssembly frontend distribution
 echo "Building client webApp (Wasm)..."
 ./gradlew :client:webApp:wasmJsBrowserDistribution --no-daemon --stacktrace
 

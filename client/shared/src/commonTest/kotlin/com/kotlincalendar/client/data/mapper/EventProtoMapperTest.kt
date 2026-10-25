@@ -1,5 +1,6 @@
 package com.kotlincalendar.client.data.mapper
 
+import com.squareup.wire.ofEpochSecond
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
@@ -72,5 +73,24 @@ class EventProtoMapperTest {
         assertEquals("Description", request.description)
         assertEquals(start.toWireInstant(), request.start_time)
         assertEquals(end.toWireInstant(), request.end_time)
+    }
+
+    @Test
+    fun toWireInstant_setsEpochSecondAndNano() {
+        val wire = Instant.fromEpochSeconds(1700000000, 500000000).toWireInstant()
+
+        assertEquals(1700000000L, wire.getEpochSecond())
+        assertEquals(500000000, wire.getNano())
+    }
+
+    @Test
+    fun wireInstantConversion_handlesPreEpochWithNanos() {
+        val wire = ofEpochSecond(-1, 250000000)
+
+        val instant = wire.toKotlinInstant()
+
+        assertEquals(-750L, instant.toEpochMilliseconds())
+        assertEquals(-1L, instant.toWireInstant().getEpochSecond())
+        assertEquals(250000000, instant.toWireInstant().getNano())
     }
 }

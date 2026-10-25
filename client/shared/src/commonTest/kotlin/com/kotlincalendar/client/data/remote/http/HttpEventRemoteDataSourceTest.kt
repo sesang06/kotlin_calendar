@@ -6,6 +6,7 @@ import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
+import com.squareup.wire.ofEpochSecond
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
@@ -16,15 +17,14 @@ import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import com.kotlincalendar.proto.calendar.v1.Event as ProtoEvent
-import com.squareup.wire.Instant as WireInstant
 
 class HttpEventRemoteDataSourceTest {
     private val sampleProtoEvent =
         ProtoEvent(
             id = "evt-1",
             title = "Sample Event",
-            start_time = WireInstant.ofEpochSecond(1700000000, 0),
-            end_time = WireInstant.ofEpochSecond(1700003600, 0),
+            start_time = ofEpochSecond(1700000000, 0),
+            end_time = ofEpochSecond(1700003600, 0),
             description = "Test description",
             owner_user_id = "user-1",
         )
@@ -81,8 +81,8 @@ class HttpEventRemoteDataSourceTest {
             val createReq =
                 CreateEventRequest(
                     title = "New Event",
-                    start_time = WireInstant.ofEpochSecond(1700000000, 0),
-                    end_time = WireInstant.ofEpochSecond(1700003600, 0),
+                    start_time = ofEpochSecond(1700000000, 0),
+                    end_time = ofEpochSecond(1700003600, 0),
                     description = "Description",
                 )
 
