@@ -4,6 +4,8 @@ import com.kotlincalendar.client.data.remote.ApiConfig
 import com.kotlincalendar.client.data.remote.AuthRemoteDataSource
 import com.kotlincalendar.client.data.remote.EventRemoteDataSource
 import com.kotlincalendar.client.data.remote.Transport
+import com.kotlincalendar.client.data.remote.auth.AuthSession
+import com.kotlincalendar.client.data.remote.auth.TokenAuthSession
 import com.kotlincalendar.client.data.remote.grpc.GrpcAuthRemoteDataSource
 import com.kotlincalendar.client.data.remote.grpc.GrpcClientFactory
 import com.kotlincalendar.client.data.remote.grpc.GrpcEventRemoteDataSource
@@ -42,6 +44,7 @@ val appModule =
                 ?: HttpAuthRemoteDataSource(get())
         }
         single<AuthRepository> { AuthRepositoryImpl(get(), get()) }
+        single<AuthSession> { TokenAuthSession(get(), get()) }
         single<EventRemoteDataSource> {
             val config = get<ApiConfig>()
             val grpcFactory = getOrNull<GrpcClientFactory>()
@@ -51,8 +54,8 @@ val appModule =
                 } else {
                     null
                 }
-            grpcClient?.let { GrpcEventRemoteDataSource(GrpcEventApiClient(it)) }
-                ?: HttpEventRemoteDataSource(get())
+            grpcClient?.let { GrpcEventRemoteDataSource(GrpcEventApiClient(it), get()) }
+                ?: HttpEventRemoteDataSource(get(), get())
         }
         single<EventRepository> { EventRepositoryImpl(get()) }
         viewModelOf(::LoginViewModel)
