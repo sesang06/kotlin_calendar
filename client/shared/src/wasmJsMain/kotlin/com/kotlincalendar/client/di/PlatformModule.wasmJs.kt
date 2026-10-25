@@ -1,5 +1,7 @@
 package com.kotlincalendar.client.di
 
+import com.kotlincalendar.client.data.local.BrowserKeyValueStorage
+import com.kotlincalendar.client.data.local.KeyValueStorage
 import com.kotlincalendar.client.data.remote.ApiConfig
 import com.kotlincalendar.client.data.remote.Transport
 import com.kotlincalendar.client.data.remote.grpc.GrpcClientFactory
@@ -15,6 +17,7 @@ private const val LOCAL_HTTP_BASE_URL = "http://localhost:8080"
 
 actual val platformModule: Module =
     module {
+        single<KeyValueStorage> { BrowserKeyValueStorage() }
         single<HttpClientEngine> { Js.create() }
         single {
             val location = window.location

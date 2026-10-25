@@ -6,6 +6,7 @@ import com.kotlincalendar.client.domain.model.AuthState
 import com.kotlincalendar.client.domain.model.AuthTokens
 import com.kotlincalendar.client.fake.FakeAuthRemoteDataSource
 import com.kotlincalendar.client.fake.FakeTokenStorage
+import com.kotlincalendar.client.fake.FakeUserStorage
 import com.kotlincalendar.proto.auth.v1.LoginResponse
 import com.kotlincalendar.proto.auth.v1.RefreshTokenResponse
 import com.kotlincalendar.proto.auth.v1.User
@@ -31,7 +32,7 @@ class TokenAuthSessionTest {
 
     private val remote = FakeAuthRemoteDataSource()
     private val storage = FakeTokenStorage()
-    private val repository = AuthRepositoryImpl(remote, storage)
+    private val repository = AuthRepositoryImpl(remote, storage, FakeUserStorage())
     private val session = TokenAuthSession(storage, repository)
 
     private suspend fun loggedIn() {

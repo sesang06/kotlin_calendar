@@ -1,5 +1,7 @@
 package com.kotlincalendar.client.di
 
+import com.kotlincalendar.client.data.local.InMemoryKeyValueStorage
+import com.kotlincalendar.client.data.local.KeyValueStorage
 import com.kotlincalendar.client.data.remote.ApiConfig
 import com.kotlincalendar.client.data.remote.grpc.GrpcClientFactory
 import com.squareup.wire.GrpcClient
@@ -12,6 +14,7 @@ import org.koin.dsl.module
 
 actual val platformModule: Module =
     module {
+        single<KeyValueStorage> { InMemoryKeyValueStorage() }
         single<HttpClientEngine> { OkHttp.create() }
         single { ApiConfig(httpBaseUrl = "http://10.0.2.2:8080", grpcBaseUrl = "http://10.0.2.2:50051") }
         single<GrpcClientFactory> {

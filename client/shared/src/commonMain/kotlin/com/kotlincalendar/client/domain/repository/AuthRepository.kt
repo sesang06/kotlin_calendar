@@ -24,4 +24,7 @@ interface AuthRepository {
     suspend fun logout(): Result<Unit>
 
     suspend fun getSavedUser(): User?
+
+    /** 저장된 세션을 읽어 refresh token이 유효하면 로그인 상태로 복원한다. 복원된 사용자, 없으면 null. */
+    suspend fun restoreSession(): User?
 }
