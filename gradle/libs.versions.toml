@@ -2,6 +2,8 @@
 kotlin = "2.3.21"
 agp = "8.11.1"
 compose-multiplatform = "1.9.1"
+# Compose Multiplatform 1.8+부터 아이콘은 별도 버전으로 배포된다.
+compose-material-icons = "1.7.3"
 android-compileSdk = "37"
 android-minSdk = "24"
 android-targetSdk = "36"
@@ -69,6 +71,7 @@ ktor-server-test-host = { module = "io.ktor:ktor-server-test-host", version.ref 
 # Koin
 koin-core = { module = "io.insert-koin:koin-core", version.ref = "koin" }
 koin-android = { module = "io.insert-koin:koin-android", version.ref = "koin" }
+compose-material-icons-core = { module = "org.jetbrains.compose.material:material-icons-core", version.ref = "compose-material-icons" }
 koin-compose-viewmodel = { module = "io.insert-koin:koin-compose-viewmodel", version.ref = "koin" }
 koin-ktor = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
 koin-logger-slf4j = { module = "io.insert-koin:koin-logger-slf4j", version.ref = "koin" }

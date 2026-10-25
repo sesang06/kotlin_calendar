@@ -17,11 +17,16 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilledTonalButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
@@ -100,7 +105,9 @@ fun EventDetailScreen(
                     onClick = { onAction(EventDetailAction.Back) },
                     enabled = !state.isDeleting,
                 ) {
-                    Text("‹ 뒤로")
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("뒤로")
                 }
             }
 
@@ -209,6 +216,8 @@ private fun EventDetailContent(
                 shape = MaterialTheme.shapes.medium,
                 enabled = !state.isDeleting,
             ) {
+                Icon(Icons.Filled.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(modifier = Modifier.width(8.dp))
                 Text("수정")
             }
             OutlinedButton(
@@ -226,6 +235,8 @@ private fun EventDetailContent(
                         strokeWidth = 2.dp,
                     )
                 } else {
+                    Icon(Icons.Filled.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(8.dp))
                     Text("삭제")
                 }
             }

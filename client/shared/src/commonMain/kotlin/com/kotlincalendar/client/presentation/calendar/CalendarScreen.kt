@@ -20,6 +20,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
@@ -101,7 +106,7 @@ fun CalendarScreen(
         floatingActionButton = {
             ExtendedFloatingActionButton(
                 onClick = { onAction(CalendarAction.CreateEvent) },
-                icon = { Text("+", style = MaterialTheme.typography.titleLarge) },
+                icon = { Icon(Icons.Filled.Add, contentDescription = null) },
                 text = { Text("일정 추가") },
             )
         },
@@ -167,8 +172,13 @@ private fun AppHeader(onOpenProfile: () -> Unit) {
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.weight(1f),
         )
-        TextButton(onClick = onOpenProfile) {
-            Text("내 정보")
+        IconButton(onClick = onOpenProfile) {
+            Icon(
+                Icons.Filled.AccountCircle,
+                contentDescription = "내 정보",
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(32.dp),
+            )
         }
     }
 }
@@ -237,10 +247,10 @@ private fun MonthHeader(
             modifier = Modifier.weight(1f).padding(start = 8.dp),
         )
         IconButton(onClick = { onAction(CalendarAction.PreviousMonth) }) {
-            Text("‹", style = MaterialTheme.typography.headlineSmall)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "이전 달")
         }
         IconButton(onClick = { onAction(CalendarAction.NextMonth) }) {
-            Text("›", style = MaterialTheme.typography.headlineSmall)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "다음 달")
         }
         FilledTonalButton(onClick = { onAction(CalendarAction.GoToToday) }) {
             Text("오늘")
@@ -436,10 +446,10 @@ private fun EventRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            Text(
-                text = "›",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.outline,
+            Icon(
+                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.outline,
             )
         }
     }
@@ -500,10 +510,10 @@ private fun PeriodHeader(
             modifier = Modifier.weight(1f).padding(start = 4.dp),
         )
         IconButton(onClick = { onAction(CalendarAction.PreviousPeriod) }) {
-            Text("‹", style = MaterialTheme.typography.headlineSmall)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = "이전")
         }
         IconButton(onClick = { onAction(CalendarAction.NextPeriod) }) {
-            Text("›", style = MaterialTheme.typography.headlineSmall)
+            Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = "다음")
         }
         FilledTonalButton(onClick = { onAction(CalendarAction.GoToToday) }) {
             Text("오늘")
