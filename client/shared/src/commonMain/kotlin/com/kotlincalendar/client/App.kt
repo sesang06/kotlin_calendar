@@ -6,6 +6,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -23,6 +24,7 @@ import com.kotlincalendar.client.presentation.auth.signup.SignUpRoute
 import com.kotlincalendar.client.presentation.calendar.CalendarRoute
 import com.kotlincalendar.client.presentation.event.create.EventCreateRoute
 import com.kotlincalendar.client.presentation.event.detail.EventDetailRoute
+import com.kotlincalendar.client.presentation.theme.CalendarTheme
 import kotlinx.datetime.LocalDate
 import kotlinx.serialization.Serializable
 import org.koin.compose.viewmodel.koinViewModel
@@ -50,7 +52,7 @@ data class EventDetailDestination(
 
 @Composable
 fun App(appViewModel: AppViewModel = koinViewModel()) {
-    MaterialTheme {
+    CalendarTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
@@ -68,9 +70,20 @@ fun App(appViewModel: AppViewModel = koinViewModel()) {
             var calendarRefreshKey by remember { mutableStateOf<Int?>(null) }
             val refreshCalendar = { calendarRefreshKey = (calendarRefreshKey ?: 0) + 1 }
 
+            // 로그아웃하거나 refresh token이 만료되면 로그인 화면으로 돌아간다.
+            var wasLoggedIn by remember { mutableStateOf(appState.isLoggedIn) }
+            LaunchedEffect(appState.isLoggedIn) {
+                if (wasLoggedIn && !appState.isLoggedIn) {
+                    navController.navigate(LoginDestination) {
+                        popUpTo(navController.graph.id) { inclusive = true }
+                    }
+                }
+                wasLoggedIn = appState.isLoggedIn
+            }
+
             NavHost(
                 navController = navController,
-                startDestination = if (appState.isLoggedIn) CalendarDestination else LoginDestination,
+                startDestination = if (appState.startLoggedIn) CalendarDestination else LoginDestination,
             ) {
                 composable<LoginDestination> {
                     LoginRoute(
@@ -102,6 +115,7 @@ fun App(appViewModel: AppViewModel = koinViewModel()) {
                     CalendarRoute(
                         onCreateEvent = { date -> navController.navigate(EventCreateDestination(date.toString())) },
                         onEventClick = { id -> navController.navigate(EventDetailDestination(id)) },
+                        onLogout = appViewModel::logout,
                         refreshKey = calendarRefreshKey,
                     )
                 }
