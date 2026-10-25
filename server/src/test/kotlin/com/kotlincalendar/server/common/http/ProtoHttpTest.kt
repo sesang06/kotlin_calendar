@@ -3,6 +3,7 @@ package com.kotlincalendar.server.common.http
 import com.kotlincalendar.proto.calendar.v1.ErrorResponse
 import com.kotlincalendar.server.common.error.NotFoundException
 import com.kotlincalendar.server.common.error.ValidationException
+import com.kotlincalendar.server.plugins.configureStatusPages
 import io.ktor.client.request.get
 import io.ktor.client.request.header
 import io.ktor.client.request.post
