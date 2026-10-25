@@ -36,14 +36,11 @@ fun Application.configureCors() {
                 .propertyOrNull("cors.hosts")
                 ?.getString()
                 ?.split(",") ?: emptyList()
-        hosts.forEach { hostPort ->
-            val trimmed = hostPort.trim()
-            if (trimmed.isNotEmpty()) {
-                val parts = trimmed.split(":")
-                val host = parts[0]
-                allowHost(host, listOf("http", "https"))
-            }
-        }
+        // CORS는 Origin의 포트까지 비교하므로 host:port를 그대로 넘긴다.
+        hosts
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+            .forEach { hostPort -> allowHost(hostPort, listOf("http", "https")) }
     }
 }
 
