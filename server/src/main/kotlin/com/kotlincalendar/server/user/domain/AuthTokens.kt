@@ -1,8 +1,10 @@
 package com.kotlincalendar.server.user.domain
 
+import kotlin.time.Instant
+
 data class AuthTokens(
     val accessToken: String,
-    val accessTokenExpiresAtEpochMillis: Long,
+    val accessTokenExpiresAt: Instant,
     val refreshToken: String,
-    val refreshTokenExpiresAtEpochMillis: Long,
+    val refreshTokenExpiresAt: Instant,
 )

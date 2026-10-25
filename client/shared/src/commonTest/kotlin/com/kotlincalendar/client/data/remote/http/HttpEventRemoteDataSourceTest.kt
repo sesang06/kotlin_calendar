@@ -1,5 +1,6 @@
 package com.kotlincalendar.client.data.remote.http
 
+import com.kotlincalendar.client.data.mapper.toWireInstant
 import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
@@ -15,16 +16,16 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Instant
 import com.kotlincalendar.proto.calendar.v1.Event as ProtoEvent
-import com.squareup.wire.Instant as WireInstant
 
 class HttpEventRemoteDataSourceTest {
     private val sampleProtoEvent =
         ProtoEvent(
             id = "evt-1",
             title = "Sample Event",
-            start_time = WireInstant.ofEpochSecond(1700000000, 0),
-            end_time = WireInstant.ofEpochSecond(1700003600, 0),
+            start_time = Instant.fromEpochSeconds(1700000000, 0).toWireInstant(),
+            end_time = Instant.fromEpochSeconds(1700003600, 0).toWireInstant(),
             description = "Test description",
             owner_user_id = "user-1",
         )
@@ -81,8 +82,8 @@ class HttpEventRemoteDataSourceTest {
             val createReq =
                 CreateEventRequest(
                     title = "New Event",
-                    start_time = WireInstant.ofEpochSecond(1700000000, 0),
-                    end_time = WireInstant.ofEpochSecond(1700003600, 0),
+                    start_time = Instant.fromEpochSeconds(1700000000, 0).toWireInstant(),
+                    end_time = Instant.fromEpochSeconds(1700003600, 0).toWireInstant(),
                     description = "Description",
                 )
 

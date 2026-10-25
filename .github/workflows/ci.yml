@@ -144,7 +144,7 @@ jobs:
           ./gradlew
           :client:shared:desktopTest
           :client:shared:testDebugUnitTest
-          :client:shared:wasmJsNodeTest
+          :client:shared:wasmJsBrowserTest
           :client:desktopApp:compileKotlin
           :client:androidApp:assembleDebug
           :client:webApp:wasmJsBrowserDistribution

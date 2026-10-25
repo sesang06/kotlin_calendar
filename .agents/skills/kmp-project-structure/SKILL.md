@@ -9,7 +9,7 @@ description: kotlin_calendar 클라이언트의 Kotlin Multiplatform 모듈·타
 
 | 모듈 | 타깃 | 역할 |
 |---|---|---|
-| `client/shared` | `androidTarget`, `iosArm64/iosSimulatorArm64`, `jvm("desktop")`, `wasmJs { browser(); nodejs() }` | 도메인·데이터·ViewModel·공통 Compose UI 전부 |
+| `client/shared` | `androidTarget`, `iosArm64/iosSimulatorArm64`, `jvm("desktop")`, `wasmJs { browser() }` (Compose/skiko가 Node에서 못 돌아 `nodejs()` 없음) | 도메인·데이터·ViewModel·공통 Compose UI 전부 |
 | `client/androidApp` | Android | `MainActivity`에서 `App()` 호출 |
 | `client/iosApp` | iOS (Xcode) | `MainViewController()`를 SwiftUI에서 감쌈 |
 | `client/desktopApp` | JVM | `application { Window { App() } }`, Windows 패키징 `TargetFormat.Msi`, `TargetFormat.Exe` |

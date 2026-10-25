@@ -42,6 +42,6 @@ class TokenProviderTest {
         val result = tokenProvider.generateRefreshToken("user-abc", now)
 
         assertNotNull(result.token)
-        assertTrue(result.expiresAtEpochMillis > now.toEpochMilliseconds())
+        assertTrue(result.expiresAt > now)
     }
 }
