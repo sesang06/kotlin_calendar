@@ -1,6 +1,7 @@
 package com.kotlincalendar.server.user.handler.grpc
 
 import com.kotlincalendar.proto.auth.v1.AuthApiGrpcKt
+import com.kotlincalendar.proto.auth.v1.GetMeRequest
 import com.kotlincalendar.proto.auth.v1.LoginRequest
 import com.kotlincalendar.proto.auth.v1.LogoutRequest
 import com.kotlincalendar.proto.auth.v1.RefreshTokenRequest
@@ -252,5 +253,28 @@ class AuthGrpcHandlerTest {
 
             assertEquals(Status.Code.UNAUTHENTICATED, exception.status.code)
             coVerify(exactly = 0) { userService.logout(any()) }
+        }
+
+    @Test
+    fun `getMe는 인증된 사용자 정보를 반환한다`() =
+        runTest {
+            testUserId = "u-1"
+            coEvery { userService.getMe("u-1") } returns
+                User(id = "u-1", email = "test@example.com", displayName = "Tester", createdAt = fixedNow)
+
+            val response = stub.getMe(GetMeRequest.getDefaultInstance())
+
+            assertEquals("u-1", response.id)
+            assertEquals("test@example.com", response.email)
+        }
+
+    @Test
+    fun `getMe는 인증되지 않으면 UNAUTHENTICATED`() =
+        runTest {
+            testUserId = null
+
+            val e = assertFailsWith<StatusException> { stub.getMe(GetMeRequest.getDefaultInstance()) }
+
+            assertEquals(Status.Code.UNAUTHENTICATED, e.status.code)
         }
 }

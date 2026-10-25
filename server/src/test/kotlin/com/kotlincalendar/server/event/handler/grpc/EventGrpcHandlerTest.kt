@@ -5,7 +5,9 @@ import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.EventApiGrpcKt
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import com.kotlincalendar.server.common.error.NotFoundException
 import com.kotlincalendar.server.common.error.ValidationException
 import com.kotlincalendar.server.common.grpc.AUTH_USER_ID_KEY
@@ -256,5 +258,80 @@ class EventGrpcHandlerTest {
                 }
 
             assertEquals(Status.Code.NOT_FOUND, e.status.code)
+        }
+
+    @Test
+    fun `updateEvent는 수정된 일정을 반환한다`() =
+        runTest {
+            coEvery { service.updateEvent(any()) } returns sampleEvent.copy(title = "수정")
+
+            val response =
+                stub.updateEvent(
+                    UpdateEventRequest
+                        .newBuilder()
+                        .setId("id-1")
+                        .setTitle("수정")
+                        .setStartTime(Timestamp.newBuilder().setSeconds(1792976400).build())
+                        .setEndTime(Timestamp.newBuilder().setSeconds(1792980000).build())
+                        .build(),
+                )
+
+            assertEquals("수정", response.title)
+            coVerify { service.updateEvent(match { it.id == "id-1" && it.ownerUserId == "user-1" }) }
+        }
+
+    @Test
+    fun `updateEvent에서 일정이 없으면 NOT_FOUND`() =
+        runTest {
+            coEvery { service.updateEvent(any()) } throws NotFoundException("nope")
+
+            val e =
+                assertFailsWith<StatusException> {
+                    stub.updateEvent(
+                        UpdateEventRequest
+                            .newBuilder()
+                            .setId("x")
+                            .setTitle("수정")
+                            .setStartTime(Timestamp.newBuilder().setSeconds(1792976400).build())
+                            .setEndTime(Timestamp.newBuilder().setSeconds(1792980000).build())
+                            .build(),
+                    )
+                }
+
+            assertEquals(Status.Code.NOT_FOUND, e.status.code)
+        }
+
+    @Test
+    fun `listEventsInRange는 기간 일정 목록을 반환한다`() =
+        runTest {
+            coEvery { service.getEventsInRange("user-1", any(), any(), any()) } returns listOf(sampleEvent)
+
+            val response =
+                stub.listEventsInRange(
+                    ListEventsInRangeRequest
+                        .newBuilder()
+                        .setStartDate("2026-10-01")
+                        .setEndDate("2026-10-31")
+                        .build(),
+                )
+
+            assertEquals(1, response.eventsCount)
+        }
+
+    @Test
+    fun `listEventsInRange에서 날짜 형식이 잘못되면 INVALID_ARGUMENT`() =
+        runTest {
+            val e =
+                assertFailsWith<StatusException> {
+                    stub.listEventsInRange(
+                        ListEventsInRangeRequest
+                            .newBuilder()
+                            .setStartDate("bad")
+                            .setEndDate("2026-10-31")
+                            .build(),
+                    )
+                }
+
+            assertEquals(Status.Code.INVALID_ARGUMENT, e.status.code)
         }
 }
