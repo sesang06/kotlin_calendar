@@ -48,6 +48,7 @@ jobs:
               - '.github/workflows/ci.yml'
             client:
               - 'client/**'
+              - 'kotlin-js-store/**'
               - 'proto/**'
               - 'build.gradle.kts'
               - 'settings.gradle.kts'
