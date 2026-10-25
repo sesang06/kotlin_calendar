@@ -14,6 +14,14 @@ class FakeEventRepository : EventRepository {
     val requestedDates = mutableListOf<LocalDate>()
     val requestedEventIds = mutableListOf<String>()
     val deletedEventIds = mutableListOf<String>()
+    val createdEvents = mutableListOf<CreateEventCall>()
+
+    data class CreateEventCall(
+        val title: String,
+        val startTime: Instant,
+        val endTime: Instant,
+        val description: String,
+    )
 
     override suspend fun getEvents(
         date: LocalDate,
@@ -33,7 +41,10 @@ class FakeEventRepository : EventRepository {
         startTime: Instant,
         endTime: Instant,
         description: String,
-    ): Result<Event> = createEventResult
+    ): Result<Event> {
+        createdEvents += CreateEventCall(title, startTime, endTime, description)
+        return createEventResult
+    }
 
     override suspend fun deleteEvent(id: String): Result<Unit> {
         deletedEventIds += id
