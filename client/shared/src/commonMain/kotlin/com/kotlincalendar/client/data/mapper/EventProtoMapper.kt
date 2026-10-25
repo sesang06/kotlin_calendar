@@ -16,11 +16,9 @@ fun ProtoEvent.toDomain(): Event =
         ownerUserId = owner_user_id,
     )
 
-fun com.squareup.wire.Instant.toKotlinInstant(): Instant = Instant.fromEpochSeconds(epochSecond, nano.toLong())
+fun com.squareup.wire.Instant.toKotlinInstant(): Instant = Instant.fromEpochSeconds(getEpochSecond(), getNano().toLong())
 
-fun Instant.toWireInstant(): com.squareup.wire.Instant =
-    com.squareup.wire.Instant
-        .ofEpochSecond(epochSeconds, nanosecondsOfSecond.toLong())
+fun Instant.toWireInstant(): com.squareup.wire.Instant = com.squareup.wire.ofEpochSecond(epochSeconds, nanosecondsOfSecond.toLong())
 
 fun toCreateEventRequest(
     title: String,

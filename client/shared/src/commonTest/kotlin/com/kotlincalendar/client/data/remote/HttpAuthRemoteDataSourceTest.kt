@@ -1,5 +1,6 @@
 package com.kotlincalendar.client.data.remote
 
+import com.kotlincalendar.client.data.mapper.toWireInstant
 import com.kotlincalendar.client.data.remote.http.HttpAuthRemoteDataSource
 import com.kotlincalendar.proto.auth.v1.AuthTokens
 import com.kotlincalendar.proto.auth.v1.LoginRequest
@@ -22,6 +23,7 @@ import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.time.Instant
 
 class HttpAuthRemoteDataSourceTest {
     private val sampleUser =
@@ -30,20 +32,23 @@ class HttpAuthRemoteDataSourceTest {
             email = "user@example.com",
             display_name = "User One",
             created_at =
-                com.squareup.wire.Instant
-                    .ofEpochMilli(1_700_000_000_000L),
+                Instant
+                    .fromEpochMilliseconds(1_700_000_000_000L)
+                    .toWireInstant(),
         )
 
     private val sampleTokens =
         AuthTokens(
             access_token = "access-token-123",
             access_token_expires_at =
-                com.squareup.wire.Instant
-                    .ofEpochMilli(1_700_000_900_000L),
+                Instant
+                    .fromEpochMilliseconds(1_700_000_900_000L)
+                    .toWireInstant(),
             refresh_token = "refresh-token-456",
             refresh_token_expires_at =
-                com.squareup.wire.Instant
-                    .ofEpochMilli(1_700_086_400_000L),
+                Instant
+                    .fromEpochMilliseconds(1_700_086_400_000L)
+                    .toWireInstant(),
         )
 
     @Test

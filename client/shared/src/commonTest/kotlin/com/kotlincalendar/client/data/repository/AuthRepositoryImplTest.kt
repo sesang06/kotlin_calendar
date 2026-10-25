@@ -1,5 +1,6 @@
 package com.kotlincalendar.client.data.repository
 
+import com.kotlincalendar.client.data.mapper.toWireInstant
 import com.kotlincalendar.client.domain.model.AuthState
 import com.kotlincalendar.client.fake.FakeAuthRemoteDataSource
 import com.kotlincalendar.client.fake.FakeTokenStorage
@@ -25,20 +26,23 @@ class AuthRepositoryImplTest {
             email = "test@example.com",
             display_name = "Test User",
             created_at =
-                com.squareup.wire.Instant
-                    .ofEpochMilli(1_700_000_000_000L),
+                Instant
+                    .fromEpochMilliseconds(1_700_000_000_000L)
+                    .toWireInstant(),
         )
 
     private val protoTokens =
         AuthTokens(
             access_token = "access-123",
             access_token_expires_at =
-                com.squareup.wire.Instant
-                    .ofEpochMilli(1_700_000_900_000L),
+                Instant
+                    .fromEpochMilliseconds(1_700_000_900_000L)
+                    .toWireInstant(),
             refresh_token = "refresh-456",
             refresh_token_expires_at =
-                com.squareup.wire.Instant
-                    .ofEpochMilli(1_700_086_400_000L),
+                Instant
+                    .fromEpochMilliseconds(1_700_086_400_000L)
+                    .toWireInstant(),
         )
 
     private val domainUser =
@@ -149,12 +153,14 @@ class AuthRepositoryImplTest {
                 AuthTokens(
                     access_token = "access-new",
                     access_token_expires_at =
-                        com.squareup.wire.Instant
-                            .ofEpochMilli(1_700_001_800_000L),
+                        Instant
+                            .fromEpochMilliseconds(1_700_001_800_000L)
+                            .toWireInstant(),
                     refresh_token = "refresh-new",
                     refresh_token_expires_at =
-                        com.squareup.wire.Instant
-                            .ofEpochMilli(1_700_090_000_000L),
+                        Instant
+                            .fromEpochMilliseconds(1_700_090_000_000L)
+                            .toWireInstant(),
                 )
             val newDomainTokens =
                 DomainTokens(
