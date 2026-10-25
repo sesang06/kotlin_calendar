@@ -5,8 +5,10 @@ import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
 import com.kotlincalendar.proto.calendar.v1.EventApiClient
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import com.squareup.wire.GrpcCall
 import com.squareup.wire.GrpcMethod
 import okio.Timeout
@@ -20,7 +22,7 @@ class FakeEventApiClient : EventApiClient {
     val executedMetadata = mutableListOf<Map<String, String>>()
     var handler: (metadata: Map<String, String>, request: Any) -> Any = { _, request ->
         when (request) {
-            is ListEventsRequest -> ListEventsResponse()
+            is ListEventsRequest, is ListEventsInRangeRequest -> ListEventsResponse()
             is DeleteEventRequest -> DeleteEventResponse()
             else -> ProtoEvent()
         }
@@ -31,6 +33,10 @@ class FakeEventApiClient : EventApiClient {
     override fun GetEvent(): GrpcCall<GetEventRequest, ProtoEvent> = FakeGrpcCall()
 
     override fun CreateEvent(): GrpcCall<CreateEventRequest, ProtoEvent> = FakeGrpcCall()
+
+    override fun ListEventsInRange(): GrpcCall<ListEventsInRangeRequest, ListEventsResponse> = FakeGrpcCall()
+
+    override fun UpdateEvent(): GrpcCall<UpdateEventRequest, ProtoEvent> = FakeGrpcCall()
 
     override fun DeleteEvent(): GrpcCall<DeleteEventRequest, DeleteEventResponse> = FakeGrpcCall()
 

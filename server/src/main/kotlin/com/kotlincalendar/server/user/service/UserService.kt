@@ -12,6 +12,7 @@ import com.kotlincalendar.server.user.domain.LoginCommand
 import com.kotlincalendar.server.user.domain.LogoutCommand
 import com.kotlincalendar.server.user.domain.RefreshTokenCommand
 import com.kotlincalendar.server.user.domain.SignUpCommand
+import com.kotlincalendar.server.user.domain.User
 import com.kotlincalendar.server.user.repository.RefreshTokenRecord
 import com.kotlincalendar.server.user.repository.RefreshTokenRepository
 import com.kotlincalendar.server.user.repository.UserRecord
@@ -165,6 +166,11 @@ class UserService(
             refreshTokenRepository.revoke(command.refreshToken)
         }
     }
+
+    /** access token의 사용자. 토큰은 유효하지만 사용자가 없으면(삭제 등) 인증 실패로 본다. */
+    suspend fun getMe(userId: String): User =
+        userRepository.findById(userId)?.toDomain()
+            ?: throw UnauthenticatedException("user not found")
 
     private fun normalizeEmail(email: String): String {
         val trimmed = email.trim()

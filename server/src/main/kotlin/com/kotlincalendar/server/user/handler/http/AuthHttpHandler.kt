@@ -10,6 +10,7 @@ import com.kotlincalendar.server.common.http.receiveProto
 import com.kotlincalendar.server.common.http.respondProto
 import com.kotlincalendar.server.user.handler.toCommand
 import com.kotlincalendar.server.user.handler.toLoginResponse
+import com.kotlincalendar.server.user.handler.toProto
 import com.kotlincalendar.server.user.handler.toRefreshTokenResponse
 import com.kotlincalendar.server.user.handler.toSignUpResponse
 import com.kotlincalendar.server.user.service.UserService
@@ -43,6 +44,18 @@ class AuthHttpHandler(
     }
 
     suspend fun logout(call: ApplicationCall) {
+        val userId = authenticate(call)
+        val request = call.receiveProto(LogoutRequest.parser())
+        userService.logout(request.toCommand(userId))
+        call.respond(HttpStatusCode.NoContent)
+    }
+
+    suspend fun me(call: ApplicationCall) {
+        val userId = authenticate(call)
+        call.respondProto(userService.getMe(userId).toProto())
+    }
+
+    private fun authenticate(call: ApplicationCall): String {
         val authHeader =
             call.request.headers[HttpHeaders.Authorization]
                 ?: throw UnauthenticatedException("missing authorization header")
@@ -50,12 +63,7 @@ class AuthHttpHandler(
             throw UnauthenticatedException("invalid authorization scheme")
         }
         val accessToken = authHeader.substringAfter("Bearer ").trim()
-        val userId =
-            tokenProvider.verifyAccessToken(accessToken, clock.now())
-                ?: throw UnauthenticatedException("invalid or expired access token")
-
-        val request = call.receiveProto(LogoutRequest.parser())
-        userService.logout(request.toCommand(userId))
-        call.respond(HttpStatusCode.NoContent)
+        return tokenProvider.verifyAccessToken(accessToken, clock.now())
+            ?: throw UnauthenticatedException("invalid or expired access token")
     }
 }
