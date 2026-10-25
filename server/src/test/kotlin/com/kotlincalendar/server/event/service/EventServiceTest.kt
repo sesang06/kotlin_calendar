@@ -4,6 +4,7 @@ import com.kotlincalendar.server.common.error.NotFoundException
 import com.kotlincalendar.server.common.error.ValidationException
 import com.kotlincalendar.server.event.domain.CreateEventCommand
 import com.kotlincalendar.server.event.domain.Event
+import com.kotlincalendar.server.event.domain.UpdateEventCommand
 import com.kotlincalendar.server.event.repository.EventRepository
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -172,5 +173,97 @@ class EventServiceTest {
             }
 
             coVerify(exactly = 1) { repo.deleteByIdAndOwnerUserId("x", "user-1") }
+        }
+
+    private val updateCommand =
+        UpdateEventCommand(
+            id = "id-1",
+            ownerUserId = "user-1",
+            title = "  수정된 회의 ",
+            start = Instant.parse("2026-10-27T01:00:00Z"),
+            end = Instant.parse("2026-10-27T03:00:00Z"),
+            description = "새 설명",
+        )
+
+    @Test
+    fun `일정을 수정하면 생성 시각은 유지하고 나머지를 바꿔 저장한다`() =
+        runTest {
+            val saved = slot<Event>()
+            coEvery { repo.findByIdAndOwnerUserId("id-1", "user-1") } returns event
+            coEvery { repo.save(capture(saved)) } answers { saved.captured }
+
+            val result = service.updateEvent(updateCommand)
+
+            assertEquals("수정된 회의", result.title)
+            assertEquals(updateCommand.start, result.start)
+            assertEquals(updateCommand.end, result.end)
+            assertEquals("새 설명", result.description)
+            assertEquals(event.createdAt, result.createdAt)
+            assertEquals("user-1", result.ownerUserId)
+        }
+
+    @Test
+    fun `없거나 남의 일정을 수정하면 NotFoundException이고 저장하지 않는다`() =
+        runTest {
+            coEvery { repo.findByIdAndOwnerUserId("id-1", "user-1") } returns null
+
+            assertFailsWith<NotFoundException> { service.updateEvent(updateCommand) }
+
+            coVerify(exactly = 0) { repo.save(any()) }
+        }
+
+    @Test
+    fun `수정 시 종료가 시작보다 빠르면 ValidationException이고 조회·저장하지 않는다`() =
+        runTest {
+            assertFailsWith<ValidationException> {
+                service.updateEvent(updateCommand.copy(end = updateCommand.start))
+            }
+
+            coVerify(exactly = 0) { repo.findByIdAndOwnerUserId(any(), any()) }
+            coVerify(exactly = 0) { repo.save(any()) }
+        }
+
+    @Test
+    fun `기간 조회는 시간대 기준 시작일 0시부터 종료일 다음 날 0시까지 겹치는 일정을 찾는다`() =
+        runTest {
+            coEvery { repo.findOverlapping(any(), any(), any()) } returns listOf(event)
+
+            val result =
+                service.getEventsInRange(
+                    userId = "user-1",
+                    startDate = LocalDate(2026, 10, 1),
+                    endDate = LocalDate(2026, 10, 31),
+                    timeZone = TimeZone.of("Asia/Seoul"),
+                )
+
+            assertEquals(listOf(event), result)
+            coVerify {
+                repo.findOverlapping(
+                    "user-1",
+                    Instant.parse("2026-09-30T15:00:00Z"),
+                    Instant.parse("2026-10-31T15:00:00Z"),
+                )
+            }
+        }
+
+    @Test
+    fun `기간 조회에서 종료일이 시작일보다 빠르면 ValidationException`() =
+        runTest {
+            assertFailsWith<ValidationException> {
+                service.getEventsInRange("user-1", LocalDate(2026, 10, 2), LocalDate(2026, 10, 1))
+            }
+            coVerify(exactly = 0) { repo.findOverlapping(any(), any(), any()) }
+        }
+
+    @Test
+    fun `기간 조회 구간이 62일을 넘으면 ValidationException`() =
+        runTest {
+            coEvery { repo.findOverlapping(any(), any(), any()) } returns emptyList()
+            // 62일 차이는 허용
+            service.getEventsInRange("user-1", LocalDate(2026, 1, 1), LocalDate(2026, 3, 4))
+
+            assertFailsWith<ValidationException> {
+                service.getEventsInRange("user-1", LocalDate(2026, 1, 1), LocalDate(2026, 3, 5))
+            }
         }
 }

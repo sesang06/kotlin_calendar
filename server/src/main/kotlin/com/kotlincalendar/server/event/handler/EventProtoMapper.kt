@@ -2,9 +2,11 @@ package com.kotlincalendar.server.event.handler
 
 import com.google.protobuf.Timestamp
 import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import com.kotlincalendar.server.common.error.ValidationException
 import com.kotlincalendar.server.event.domain.CreateEventCommand
 import com.kotlincalendar.server.event.domain.Event
+import com.kotlincalendar.server.event.domain.UpdateEventCommand
 import kotlinx.datetime.LocalDate
 import kotlinx.datetime.TimeZone
 import kotlin.time.Instant
@@ -43,12 +45,32 @@ fun CreateEventRequest.toCommand(ownerUserId: String = ""): CreateEventCommand {
     )
 }
 
-fun parseDate(raw: String?): LocalDate {
+/** [id]는 HTTP 경로 또는 요청 메시지의 id. */
+fun UpdateEventRequest.toCommand(
+    id: String,
+    ownerUserId: String,
+): UpdateEventCommand {
+    if (!hasStartTime()) throw ValidationException("start_time is required")
+    if (!hasEndTime()) throw ValidationException("end_time is required")
+    return UpdateEventCommand(
+        id = requireId(id),
+        ownerUserId = ownerUserId,
+        title = title,
+        start = startTime.toInstant(),
+        end = endTime.toInstant(),
+        description = description,
+    )
+}
+
+fun parseDate(
+    raw: String?,
+    name: String = "date",
+): LocalDate {
     if (raw.isNullOrBlank()) {
-        throw ValidationException("date is required")
+        throw ValidationException("$name is required")
     }
     return runCatching { LocalDate.parse(raw) }
-        .getOrElse { throw ValidationException("invalid date '$raw' (expected yyyy-MM-dd)") }
+        .getOrElse { throw ValidationException("invalid $name '$raw' (expected yyyy-MM-dd)") }
 }
 
 fun parseTimeZone(raw: String?): TimeZone {
