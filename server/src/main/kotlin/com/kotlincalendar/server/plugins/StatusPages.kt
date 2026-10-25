@@ -1,7 +1,9 @@
-package com.kotlincalendar.server.common.http
+package com.kotlincalendar.server.plugins
 
 import com.kotlincalendar.proto.calendar.v1.ErrorResponse
 import com.kotlincalendar.server.common.error.DomainException
+import com.kotlincalendar.server.common.http.respondProto
+import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.application.install
 import io.ktor.server.plugins.statuspages.StatusPages
@@ -22,7 +24,7 @@ fun Application.configureStatusPages() {
                     .newBuilder()
                     .setMessage(cause.message ?: "internal server error")
                     .build()
-            call.respondProto(errorResponse, io.ktor.http.HttpStatusCode.InternalServerError)
+            call.respondProto(errorResponse, HttpStatusCode.InternalServerError)
         }
     }
 }
