@@ -42,10 +42,12 @@ server/src/main/kotlin/com/kotlincalendar/server/
 | `ValidationException` | 400 + `ErrorResponse` | `INVALID_ARGUMENT` |
 | `NotFoundException` | 404 + `ErrorResponse` | `NOT_FOUND` |
 | `ConflictException` | 409 + `ErrorResponse` | `ALREADY_EXISTS` |
+| `UnauthenticatedException` | 401 + `ErrorResponse` | `UNAUTHENTICATED` |
 
-5. 요청 형식 오류(날짜 파싱 등)는 매퍼에서 `ValidationException`으로 던져 두 전송 방식이 같은 결과를 내게 한다.
-6. 포트: HTTP `ktor.deployment.port`(기본 8080), gRPC `grpc.port`(기본 50051). gRPC 서버는 `ApplicationStarted`에 start, `ApplicationStopping`에 shutdown.
-7. CORS: `application/x-protobuf`는 non-simple content type이므로 `allowNonSimpleContentTypes = true`.
+5. **인증**: access token은 HTTP `Authorization: Bearer <token>` 헤더, gRPC metadata `authorization: Bearer <token>`으로 받는다. 검증은 전송 계층 한 곳(HTTP: Ktor Authentication 플러그인, gRPC: `ServerInterceptor`)에서 하고, Handler는 검증된 사용자 ID만 받아 Service에 넘긴다. `AuthApi`의 SignUp·Login·RefreshToken만 인증 없이 허용.
+6. 요청 형식 오류(날짜 파싱 등)는 매퍼에서 `ValidationException`으로 던져 두 전송 방식이 같은 결과를 내게 한다.
+7. 포트: HTTP `ktor.deployment.port`(기본 8080), gRPC `grpc.port`(기본 50051). gRPC 서버는 `ApplicationStarted`에 start, `ApplicationStopping`에 shutdown.
+8. CORS: `Authorization` 헤더도 `allowHeader`에 추가한다. `application/x-protobuf`는 non-simple content type이므로 `allowNonSimpleContentTypes = true`.
 
 ### 템플릿
 
