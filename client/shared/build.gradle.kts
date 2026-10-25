@@ -79,7 +79,7 @@ kotlin {
     }
 }
 
-// 서버와 같은 proto/ 를 Wire로 Kotlin Multiplatform 코드로 생성한다 (proto-contract 스킬).
+// 서버와 같은 proto/ 를 Wire로 Kotlin Multiplatform 코드로 생성한다 (proto-api 스킬).
 wire {
     sourcePath {
         srcDir(rootProject.file("proto"))
