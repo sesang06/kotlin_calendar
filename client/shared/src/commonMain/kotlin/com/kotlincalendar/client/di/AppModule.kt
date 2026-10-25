@@ -23,10 +23,13 @@ import com.kotlincalendar.client.presentation.app.AppViewModel
 import com.kotlincalendar.client.presentation.auth.login.LoginViewModel
 import com.kotlincalendar.client.presentation.auth.signup.SignUpViewModel
 import com.kotlincalendar.client.presentation.calendar.CalendarViewModel
+import com.kotlincalendar.client.presentation.event.create.EventCreateViewModel
+import com.kotlincalendar.client.presentation.event.detail.EventDetailViewModel
 import com.kotlincalendar.proto.auth.v1.GrpcAuthApiClient
 import com.kotlincalendar.proto.calendar.v1.GrpcEventApiClient
 import kotlinx.datetime.TimeZone
 import org.koin.core.context.startKoin
+import org.koin.core.module.dsl.viewModel
 import org.koin.core.module.dsl.viewModelOf
 import org.koin.dsl.KoinAppDeclaration
 import org.koin.dsl.module
@@ -71,6 +74,8 @@ val appModule =
         single<Clock> { Clock.System }
         single<TimeZone> { TimeZone.currentSystemDefault() }
         viewModelOf(::CalendarViewModel)
+        viewModel { params -> EventCreateViewModel(params.get(), get(), get(), get()) }
+        viewModel { params -> EventDetailViewModel(params.get(), get(), get()) }
     }
 
 fun initKoin(extra: KoinAppDeclaration = {}) =
