@@ -65,7 +65,10 @@ message LogoutRequest {
 
 message LogoutResponse {}
 
-// 인증 없이 호출 가능 (Logout 제외).
+// 로그인한 사용자 자신의 정보. 사용자는 access token에서 정한다.
+message GetMeRequest {}
+
+// SignUp·Login·RefreshToken은 인증 없이 호출 가능. Logout·GetMe는 access token 필요.
 // 실패 시:
 //   - 입력 형식 오류           → INVALID_ARGUMENT / 400
 //   - 이미 가입된 이메일       → ALREADY_EXISTS   / 409
@@ -78,9 +81,11 @@ message LogoutResponse {}
 // | Login        | POST /api/auth/login        | 없음         | 200 LoginResponse        |
 // | RefreshToken | POST /api/auth/refresh      | 없음         | 200 RefreshTokenResponse |
 // | Logout       | POST /api/auth/logout       | access token | 204                      |
+// | GetMe        | GET  /api/auth/me           | access token | 200 User                 |
 service AuthApi {
   rpc SignUp(SignUpRequest) returns (SignUpResponse);
   rpc Login(LoginRequest) returns (LoginResponse);
   rpc RefreshToken(RefreshTokenRequest) returns (RefreshTokenResponse);
   rpc Logout(LogoutRequest) returns (LogoutResponse);
+  rpc GetMe(GetMeRequest) returns (User);
 }

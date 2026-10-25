@@ -309,4 +309,31 @@ class UserServiceTest {
 
             coVerify(exactly = 0) { refreshTokenRepository.revoke(any()) }
         }
+
+    @Test
+    fun `getMe는 사용자 정보를 반환한다`() =
+        runTest {
+            coEvery { userRepository.findById("user-123") } returns
+                UserRecord(
+                    id = "user-123",
+                    email = "user@example.com",
+                    displayName = "홍길동",
+                    passwordHash = "hash",
+                    createdAtEpochMillis = fixedNow.toEpochMilliseconds(),
+                )
+
+            val user = service.getMe("user-123")
+
+            assertEquals("user@example.com", user.email)
+            assertEquals("홍길동", user.displayName)
+            assertEquals(fixedNow, user.createdAt)
+        }
+
+    @Test
+    fun `getMe에서 사용자가 없으면 UnauthenticatedException`() =
+        runTest {
+            coEvery { userRepository.findById("gone") } returns null
+
+            assertFailsWith<UnauthenticatedException> { service.getMe("gone") }
+        }
 }

@@ -5,8 +5,10 @@ import com.kotlincalendar.proto.calendar.v1.DeleteEventRequest
 import com.kotlincalendar.proto.calendar.v1.DeleteEventResponse
 import com.kotlincalendar.proto.calendar.v1.EventApiGrpcKt
 import com.kotlincalendar.proto.calendar.v1.GetEventRequest
+import com.kotlincalendar.proto.calendar.v1.ListEventsInRangeRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsRequest
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import com.kotlincalendar.server.common.error.UnauthenticatedException
 import com.kotlincalendar.server.common.grpc.AUTH_USER_ID_KEY
 import com.kotlincalendar.server.common.grpc.grpcCall
@@ -37,6 +39,21 @@ class EventGrpcHandler(
                 .build()
         }
 
+    override suspend fun listEventsInRange(request: ListEventsInRangeRequest): ListEventsResponse =
+        grpcCall {
+            val events =
+                eventService.getEventsInRange(
+                    userId = currentUserId(),
+                    startDate = parseDate(request.startDate, "start_date"),
+                    endDate = parseDate(request.endDate, "end_date"),
+                    timeZone = parseTimeZone(request.timeZone),
+                )
+            ListEventsResponse
+                .newBuilder()
+                .addAllEvents(events.map { it.toProto() })
+                .build()
+        }
+
     override suspend fun getEvent(request: GetEventRequest): EventMessage =
         grpcCall {
             val userId = currentUserId()
@@ -49,6 +66,12 @@ class EventGrpcHandler(
             val userId = currentUserId()
             val created = eventService.createEvent(request.toCommand(ownerUserId = userId))
             created.toProto()
+        }
+
+    override suspend fun updateEvent(request: UpdateEventRequest): EventMessage =
+        grpcCall {
+            val userId = currentUserId()
+            eventService.updateEvent(request.toCommand(id = request.id, ownerUserId = userId)).toProto()
         }
 
     override suspend fun deleteEvent(request: DeleteEventRequest): DeleteEventResponse =

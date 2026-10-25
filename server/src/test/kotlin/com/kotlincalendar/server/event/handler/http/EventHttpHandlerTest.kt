@@ -4,6 +4,7 @@ import com.google.protobuf.Timestamp
 import com.kotlincalendar.proto.calendar.v1.CreateEventRequest
 import com.kotlincalendar.proto.calendar.v1.ErrorResponse
 import com.kotlincalendar.proto.calendar.v1.ListEventsResponse
+import com.kotlincalendar.proto.calendar.v1.UpdateEventRequest
 import com.kotlincalendar.server.common.auth.TokenProvider
 import com.kotlincalendar.server.common.error.NotFoundException
 import com.kotlincalendar.server.common.http.ProtobufContentType
@@ -16,6 +17,7 @@ import io.ktor.client.call.body
 import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.header
+import io.ktor.client.request.patch
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.http.HttpHeaders
@@ -216,5 +218,74 @@ class EventHttpHandlerTest {
             assertEquals(HttpStatusCode.NotFound, response.status)
             val errorResponse = ErrorResponse.parseFrom(response.body<ByteArray>())
             assertEquals("event x not found", errorResponse.message)
+        }
+
+    @Test
+    fun `PATCH events id는 200과 수정된 일정을 proto로 반환한다`() =
+        withApp {
+            coEvery { service.updateEvent(any()) } returns sampleEvent.copy(title = "수정")
+
+            val request =
+                UpdateEventRequest
+                    .newBuilder()
+                    .setTitle("수정")
+                    .setStartTime(Timestamp.newBuilder().setSeconds(1792976400).build())
+                    .setEndTime(Timestamp.newBuilder().setSeconds(1792980000).build())
+                    .build()
+
+            val response =
+                client.patch("/api/events/id-1") {
+                    header(HttpHeaders.Authorization, "Bearer valid-token")
+                    header(HttpHeaders.ContentType, ProtobufContentType.toString())
+                    setBody(request.toByteArray())
+                }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals("수정", EventMessage.parseFrom(response.body<ByteArray>()).title)
+            coVerify {
+                service.updateEvent(match { it.id == "id-1" && it.ownerUserId == "user-1" && it.title == "수정" })
+            }
+        }
+
+    @Test
+    fun `PATCH에서 start_time이 없으면 400이고 Service를 호출하지 않는다`() =
+        withApp {
+            val request = UpdateEventRequest.newBuilder().setTitle("수정").build()
+
+            val response =
+                client.patch("/api/events/id-1") {
+                    header(HttpHeaders.Authorization, "Bearer valid-token")
+                    header(HttpHeaders.ContentType, ProtobufContentType.toString())
+                    setBody(request.toByteArray())
+                }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            coVerify(exactly = 0) { service.updateEvent(any()) }
+        }
+
+    @Test
+    fun `GET events range는 200과 기간 일정 목록을 반환한다`() =
+        withApp {
+            coEvery { service.getEventsInRange("user-1", any(), any(), any()) } returns listOf(sampleEvent)
+
+            val response =
+                client.get("/api/events/range?start_date=2026-10-01&end_date=2026-10-31&time_zone=Asia/Seoul") {
+                    header(HttpHeaders.Authorization, "Bearer valid-token")
+                }
+
+            assertEquals(HttpStatusCode.OK, response.status)
+            assertEquals(1, ListEventsResponse.parseFrom(response.body<ByteArray>()).eventsCount)
+        }
+
+    @Test
+    fun `GET events range에 end_date가 없으면 400이고 Service를 호출하지 않는다`() =
+        withApp {
+            val response =
+                client.get("/api/events/range?start_date=2026-10-01") {
+                    header(HttpHeaders.Authorization, "Bearer valid-token")
+                }
+
+            assertEquals(HttpStatusCode.BadRequest, response.status)
+            coVerify(exactly = 0) { service.getEventsInRange(any(), any(), any(), any()) }
         }
 }
